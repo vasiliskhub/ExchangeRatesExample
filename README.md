@@ -3,7 +3,7 @@
 This API provides exchange rates using various exchange rate providers. 
 Currently supports Czech National Bank (CZK) as the base currency provider.
 
-Deployed via cicd pipeline on hetzner 
+Deployed via ci/cd pipeline on hetzner 
 
 http://128.140.72.56:18080/swagger/index.html
 
@@ -121,13 +121,3 @@ The API returns appropriate HTTP status codes:
 - `400 Bad Request`: Invalid request (missing currencies, etc.)
 - `500 Internal Server Error`: Server error
 
-Error responses include descriptive messages to help with debugging.
-
-## Features
-
-- ? **Interactive Documentation**: Swagger UI with examples and testing capabilities
-- ? **Flexible Input**: POST (JSON) and GET (query params) request methods
-- ? **Comprehensive Validation**: Input validation with clear error messages
-- ? **Caching**: Built-in caching for improved performance
-- ? **Logging**: Structured logging throughout the application
-- ? **Error Handling**: Robust error handling with appropriate HTTP status codes
