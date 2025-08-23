@@ -5,13 +5,13 @@ namespace ExchangeRateProviders;
 
 public class ExchangeRateProviderFactory : IExchangeRateProviderFactory
 {
-    private readonly Dictionary<string, IExchangeRateProvider> _bySource;
+    private readonly Dictionary<string, IExchangeRateProvider> _providers;
     private readonly ILogger<ExchangeRateProviderFactory> _logger;
 
     public ExchangeRateProviderFactory(IEnumerable<IExchangeRateProvider> providers, ILogger<ExchangeRateProviderFactory> logger)
     {
         _logger = logger;
-        _bySource = providers.ToDictionary(p => p.ExchangeRateProviderCurrencyCode, StringComparer.OrdinalIgnoreCase);
+		_providers = providers.ToDictionary(p => p.ExchangeRateProviderCurrencyCode, StringComparer.OrdinalIgnoreCase);
     }
 
     public IExchangeRateProvider GetProvider(string exchangeRateProviderCurrencyCode)
@@ -21,7 +21,7 @@ public class ExchangeRateProviderFactory : IExchangeRateProviderFactory
             _logger.LogError("Attempted to get provider with null currency code.");
             throw new ArgumentNullException(nameof(exchangeRateProviderCurrencyCode));
         }
-        if (_bySource.TryGetValue(exchangeRateProviderCurrencyCode, out var provider))
+        if (_providers.TryGetValue(exchangeRateProviderCurrencyCode, out var provider))
         {
             _logger.LogDebug("Resolved exchange rate provider for currency {Currency}", exchangeRateProviderCurrencyCode);
             return provider;
