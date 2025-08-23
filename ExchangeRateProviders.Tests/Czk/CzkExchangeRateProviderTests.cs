@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 
-namespace ExchangeRateProviders.Tests;
+namespace ExchangeRateProviders.Tests.Czk;
 
 [TestFixture]
 public class CzkExchangeRateProviderTests
@@ -13,17 +13,25 @@ public class CzkExchangeRateProviderTests
     [Test]
     public async Task GetExchangeRatesAsync_NullCurrencies_ReturnsEmpty()
     {
+        // Arrange
         var dataProvider = Substitute.For<IExchangeRateDataProvider>();
         var logger = Substitute.For<ILogger<CzkExchangeRateProvider>>();
         var provider = new CzkExchangeRateProvider(dataProvider, logger);
 
+        // Act
         var result = await provider.GetExchangeRatesAsync(null!);
-        Assert.That(result, Is.Empty);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Empty);
+        });
     }
 
     [Test]
     public async Task GetExchangeRatesAsync_FiltersToRequestedCurrencies()
     {
+        // Arrange
         var logger = Substitute.For<ILogger<CzkExchangeRateProvider>>();
         var dataProvider = Substitute.For<IExchangeRateDataProvider>();
         var allRates = new[]
@@ -34,13 +42,18 @@ public class CzkExchangeRateProviderTests
         };
         dataProvider.GetDailyRatesAsync().Returns(allRates);
         var provider = new CzkExchangeRateProvider(dataProvider, logger);
-
         var requested = new[] { new Currency("USD"), new Currency("JPY") };
+
+        // Act
         var result = (await provider.GetExchangeRatesAsync(requested)).ToList();
 
-        Assert.That(result.Count, Is.EqualTo(2));
-        Assert.That(result.Any(r => r.SourceCurrency.Code == "USD"));
-        Assert.That(result.Any(r => r.SourceCurrency.Code == "JPY"));
-        Assert.That(result.All(r => r.TargetCurrency.Code == "CZK"));
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result.Any(r => r.SourceCurrency.Code == "USD"));
+            Assert.That(result.Any(r => r.SourceCurrency.Code == "JPY"));
+            Assert.That(result.All(r => r.TargetCurrency.Code == "CZK"));
+        });
     }
 }
