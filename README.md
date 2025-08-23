@@ -7,7 +7,7 @@ Deployed via cicd pipeline on hetzner
 
 http://128.140.72.56:18080/swagger/index.html
 
-## ?? API Documentation
+## API Documentation
 
 You can access the interactive Swagger UI documentation at:
 - **Swagger UI**: `/swagger`
