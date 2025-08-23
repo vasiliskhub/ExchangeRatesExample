@@ -9,12 +9,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-      ASPNETCORE_PATHBASE: /projects/exampleApi
       Logging__LogLevel__Default: Information
       Logging__LogLevel__Microsoft.AspNetCore: Warning
     ports:
-      - "18080:8080"   # direct debug access → http://<server-ip>:18080
+      - "18080:8080"     # hit http://<server-ip>:18080
     networks:
       - kvblog_backend
     restart: unless-stopped
