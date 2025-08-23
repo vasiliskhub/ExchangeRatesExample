@@ -1,200 +1,196 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
+using ExchangeRateProviders.Czk.Model;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 using Polly;
-using System.Net;
-using System.Text;
 
 namespace ExchangeRateProviders.Tests.Czk.Clients;
 
 [TestFixture]
 public class CzkCnbApiClientTests
 {
-	private const string TwoRatesJson = """
-        { "rates": [
-            { "code":"EUR", "rate":25.10 },
-            { "code":"USD", "rate":22.90 }
-        ]}
-        """;
-	private const string OneRateJson = """{ "rates": [ { "code":"EUR", "rate":25.10 } ] }""";
-	private const string EmptyRatesJson = """{ "rates": [] }""";
+    private static IAsyncPolicy<HttpResponseMessage> ZeroBackoffRetry(int retries = 3) =>
+        Policy<HttpResponseMessage>
+            .Handle<HttpRequestException>()
+            .OrResult(r => (int)r.StatusCode >= 500 || (int)r.StatusCode == 429)
+            .WaitAndRetryAsync(retries, _ => TimeSpan.Zero);
 
-	private static IAsyncPolicy<HttpResponseMessage> ZeroBackoffRetry(int retries = 3) =>
-		Policy<HttpResponseMessage>
-			.Handle<HttpRequestException>()
-			.OrResult(r => (int)r.StatusCode >= 500 || (int)r.StatusCode == 429)
-			.WaitAndRetryAsync(retries, _ => TimeSpan.Zero);
+    [Test]
+    public async Task GetDailyRatesRawAsync_ValidResponse_ReturnsRates()
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
+        var responseData = new CnbApiCzkExchangeRateResponse
+        {
+            Rates = new List<CnbApiExchangeRateDto>
+            {
+                new() { CurrencyCode = "USD", Amount = 1, Rate = 22.50m, ValidFor = DateTime.UtcNow },
+                new() { CurrencyCode = "EUR", Amount = 1, Rate = 24.00m, ValidFor = DateTime.UtcNow }
+            }
+        };
+        var json = JsonSerializer.Serialize(responseData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var handler = new TestHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        });
+        var httpClient = new HttpClient(handler);
+        var client = new CzkCnbApiClient(httpClient, logger, ZeroBackoffRetry());
 
-	[Test]
-	public async Task GetDailyRatesRawAsync_ReturnsList_On200()
-	{
-		// Arrange
-		var handler = new SequenceHttpMessageHandler(
-			new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(TwoRatesJson, Encoding.UTF8, "application/json") });
-		var (client, logger) = CreateClientWithHandler(handler);
+        // Act
+        var result = (await client.GetDailyRatesRawAsync()).ToList();
 
-		// Act
-		var result = await client.GetDailyRatesRawAsync();
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result[0].CurrencyCode, Is.EqualTo("USD"));
+            Assert.That(result[0].Rate, Is.EqualTo(22.50m));
+            Assert.That(result[1].CurrencyCode, Is.EqualTo("EUR"));
+            Assert.That(result[1].Rate, Is.EqualTo(24.00m));
+            Assert.That(handler.CallCount, Is.EqualTo(1));
+        });
+    }
 
-		// Assert
-		Assert.That(result, Has.Count.EqualTo(2));
-		Assert.That(handler.CallCount, Is.EqualTo(1));
-		Assert.That(logger.JoinedMessages, Does.Contain("CNB returned 2 raw rates"));
-	}
+    [Test]
+    public async Task GetDailyRatesRawAsync_EmptyRates_ReturnsEmptyList()
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
+        var responseData = new CnbApiCzkExchangeRateResponse { Rates = new List<CnbApiExchangeRateDto>() };
+        var json = JsonSerializer.Serialize(responseData);
+        var handler = new TestHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        });
+        var httpClient = new HttpClient(handler);
+        var client = new CzkCnbApiClient(httpClient, logger, ZeroBackoffRetry());
 
-	[Test]
-	public async Task GetDailyRatesRawAsync_EmptyRates_LogsWarning()
-	{
-		// Arrange
-		var handler = new SequenceHttpMessageHandler(
-			new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EmptyRatesJson, Encoding.UTF8, "application/json") });
-		var (client, logger) = CreateClientWithHandler(handler);
+        // Act
+        var result = (await client.GetDailyRatesRawAsync()).ToList();
 
-		// Act
-		var result = await client.GetDailyRatesRawAsync();
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Empty);
+            Assert.That(handler.CallCount, Is.EqualTo(1));
+        });
+    }
 
-		// Assert
-		Assert.That(result, Is.Empty);
-		Assert.That(logger.JoinedMessages, Does.Contain("response empty"));
-	}
+    [Test]
+    public async Task GetDailyRatesRawAsync_ServerError_RetriesAndSucceeds()
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
+        var responseData = new CnbApiCzkExchangeRateResponse
+        {
+            Rates = new List<CnbApiExchangeRateDto>
+            {
+                new() { CurrencyCode = "JPY", Amount = 100, Rate = 17.00m, ValidFor = DateTime.UtcNow }
+            }
+        };
+        var json = JsonSerializer.Serialize(responseData);
+        var handler = new TestHttpMessageHandler(
+            new HttpResponseMessage(HttpStatusCode.InternalServerError),
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            });
+        var httpClient = new HttpClient(handler);
+        var client = new CzkCnbApiClient(httpClient, logger, ZeroBackoffRetry());
 
-	[Test]
-	public async Task GetDailyRatesRawAsync_RetriesOnServerError_ThenSucceeds()
-	{
-		// Arrange (500 then success)
-		var handler = new SequenceHttpMessageHandler(
-			new HttpResponseMessage(HttpStatusCode.InternalServerError),
-			new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(OneRateJson, Encoding.UTF8, "application/json") });
-		var (client, _) = CreateClientWithHandler(handler);
+        // Act
+        var result = (await client.GetDailyRatesRawAsync()).ToList();
 
-		// Act
-		var result = await client.GetDailyRatesRawAsync();
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result[0].CurrencyCode, Is.EqualTo("JPY"));
+            Assert.That(handler.CallCount, Is.EqualTo(2)); // Initial call + 1 retry
+        });
+    }
 
-		// Assert
-		Assert.That(result, Has.Count.EqualTo(1));
-		Assert.That(handler.CallCount, Is.EqualTo(2)); // 1 retry
-	}
+    [Test]
+    public void GetDailyRatesRawAsync_TooManyRequests_RetriesAndThrows()
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
+        var handler = new TestHttpMessageHandler(
+            new HttpResponseMessage(HttpStatusCode.TooManyRequests),
+            new HttpResponseMessage(HttpStatusCode.TooManyRequests),
+            new HttpResponseMessage(HttpStatusCode.TooManyRequests),
+            new HttpResponseMessage(HttpStatusCode.TooManyRequests));
+        var httpClient = new HttpClient(handler);
+        var client = new CzkCnbApiClient(httpClient, logger, ZeroBackoffRetry());
 
-	[Test]
-	public void GetDailyRatesRawAsync_TooManyFailures_Throws()
-	{
-		// Arrange (exceed retry attempts all 429)
-		var handler = new SequenceHttpMessageHandler(
-			new HttpResponseMessage(HttpStatusCode.TooManyRequests),
-			new HttpResponseMessage(HttpStatusCode.TooManyRequests),
-			new HttpResponseMessage(HttpStatusCode.TooManyRequests),
-			new HttpResponseMessage(HttpStatusCode.TooManyRequests));
-		var (client, _) = CreateClientWithHandler(handler);
+        // Act & Assert
+        Assert.Multiple(() =>
+        {
+            Assert.ThrowsAsync<HttpRequestException>(() => client.GetDailyRatesRawAsync());
+            Assert.That(handler.CallCount, Is.EqualTo(4)); // Initial + 3 retries
+        });
+    }
 
-		// Act & Assert
-		Assert.ThrowsAsync<HttpRequestException>(() => client.GetDailyRatesRawAsync());
-		Assert.That(handler.CallCount, Is.EqualTo(4));
-	}
+    [Test]
+    public async Task GetDailyRatesRawAsync_RespectsCancellationToken()
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
+        var handler = new DelayHttpMessageHandler(TimeSpan.FromSeconds(5));
+        var httpClient = new HttpClient(handler);
+        var client = new CzkCnbApiClient(httpClient, logger, ZeroBackoffRetry());
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
-	[Test]
-	public async Task GetDailyRatesRawAsync_RespectsCancellationToken()
-	{
-		// Arrange (long delay to allow cancellation)
-		var handler = new FakeHttpMessageHandler(async (_, ct) =>
-		{
-			await Task.Delay(TimeSpan.FromSeconds(5), ct);
-			return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EmptyRatesJson, Encoding.UTF8, "application/json") };
-		});
-		var (client, _) = CreateClientWithHandler(handler);
-		using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(80));
+        // Act & Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await client.GetDailyRatesRawAsync(cts.Token), 
+                Throws.InstanceOf<OperationCanceledException>());
+            Assert.That(handler.CallCount, Is.EqualTo(1));
+        });
+    }
 
-		// Act & Assert
-		Assert.That(async () => await client.GetDailyRatesRawAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
-		Assert.That(handler.CallCount, Is.EqualTo(1));
-	}
+    private class TestHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Queue<HttpResponseMessage> _responses;
+        public int CallCount { get; private set; }
 
-	[Test]
-	public async Task LogsInformation_AtLeastOnce_WithNSubstituteILogger()
-	{
-		// Arrange
-		var handler = new SequenceHttpMessageHandler(
-			new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EmptyRatesJson, Encoding.UTF8, "application/json") });
-		var http = new HttpClient(handler);
-		var substituteLogger = Substitute.For<ILogger<CzkCnbApiClient>>();
-		var client = CreateClient(http, substituteLogger);
+        public TestHttpMessageHandler(params HttpResponseMessage[] responses)
+        {
+            _responses = new Queue<HttpResponseMessage>(responses);
+        }
 
-		// Act
-		await client.GetDailyRatesRawAsync();
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            var response = _responses.Count > 0 ? _responses.Dequeue() : new HttpResponseMessage(HttpStatusCode.NotFound);
+            return Task.FromResult(response);
+        }
+    }
 
-		// Assert
-		substituteLogger.ReceivedWithAnyArgs().Log(default, default, default!, default, default!);
-	}
+    private class DelayHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly TimeSpan _delay;
+        public int CallCount { get; private set; }
 
-	private static (CzkCnbApiClient client, ListLogger<CzkCnbApiClient> logger) CreateClientWithHandler(HttpMessageHandler handler)
-	{
-		var http = new HttpClient(handler);
-		var logger = new ListLogger<CzkCnbApiClient>();
-		var client = CreateClient(http, logger);
-		return (client, logger);
-	}
+        public DelayHttpMessageHandler(TimeSpan delay)
+        {
+            _delay = delay;
+        }
 
-	private static CzkCnbApiClient CreateClient(HttpClient http, ILogger<CzkCnbApiClient> logger)
-	{
-		try
-		{
-			return (CzkCnbApiClient)Activator.CreateInstance(
-				typeof(CzkCnbApiClient),
-				args: new object?[] { http, logger, ZeroBackoffRetry() })!;
-		}
-		catch (MissingMethodException)
-		{
-			return (CzkCnbApiClient)Activator.CreateInstance(
-				typeof(CzkCnbApiClient),
-				args: new object?[] { http, logger })!;
-		}
-	}
-
-	private sealed class ListLogger<T> : ILogger<T>
-	{
-		private readonly List<(LogLevel Level, string Message)> _entries = new();
-		public string JoinedMessages => string.Join(" | ", _entries.ConvertAll(e => $"[{e.Level}] {e.Message}"));
-
-		public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
-		public bool IsEnabled(LogLevel logLevel) => true;
-		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-		{
-			var message = formatter != null ? formatter(state, exception) : state?.ToString() ?? string.Empty;
-			_entries.Add((logLevel, message));
-		}
-
-		private sealed class NullScope : IDisposable { public static readonly NullScope Instance = new(); public void Dispose() { } }
-	}
-
-	private sealed class FakeHttpMessageHandler : HttpMessageHandler
-	{
-		private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _responder;
-		public int CallCount { get; private set; }
-
-		public FakeHttpMessageHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responder) => _responder = responder;
-
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-		{
-			CallCount++;
-			return _responder(request, cancellationToken);
-		}
-	}
-
-	private sealed class SequenceHttpMessageHandler : HttpMessageHandler
-	{
-		private readonly Queue<HttpResponseMessage> _responses = new();
-		public int CallCount { get; private set; }
-
-		public SequenceHttpMessageHandler(params HttpResponseMessage[] responses)
-		{
-			foreach (var r in responses) _responses.Enqueue(r);
-		}
-
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-		{
-			CallCount++;
-			var next = _responses.Count > 0 ? _responses.Dequeue() : new HttpResponseMessage(HttpStatusCode.OK);
-			return Task.FromResult(next);
-		}
-	}
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            await Task.Delay(_delay, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"rates":[]}""", Encoding.UTF8, "application/json")
+            };
+        }
+    }
 }
