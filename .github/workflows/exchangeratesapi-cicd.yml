@@ -1,0 +1,62 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Run unit tests
+        run: dotnet test ExchangeRateExample.sln --verbosity normal
+                      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+           version: v0.11.2
+        
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .  # Use root directory as context
+          file: ./ExchangeRateApi/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/exchange-rate-api:latest
+
+      - name: Upload ExchangeRateApi to Hetzner via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HETZNER_SERVER_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "*"
+          target: "/root/exchangerate"
+
+      - name: Deploy to Hetzner
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HETZNER_SERVER_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd exchangerate
+              docker compose -f docker-compose.yml down
+              docker compose -f docker-compose.yml pull
+      
+              echo "Starting app services..."
+              docker compose -f docker-compose.yml up -d
