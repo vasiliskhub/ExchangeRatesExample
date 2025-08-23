@@ -6,23 +6,19 @@ services:
       context: .
       dockerfile: ExchangeRateApi/Dockerfile
     container_name: exchangerate-api
-    ports:
-      - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
-      - Logging__LogLevel__Default=Information
-      - Logging__LogLevel__Microsoft.AspNetCore=Warning
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      ASPNETCORE_PATHBASE: /projects/exampleApi
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+    ports:
+      - "18080:8080"   # direct debug access → http://<server-ip>:18080
     networks:
-      - exchangerate-network
+      - kvblog_backend
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/swagger"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 networks:
-  exchangerate-network:
-    driver: bridge
+  kvblog_backend:
+    external: true
