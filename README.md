@@ -1,101 +1,133 @@
-# Docker Setup for Exchange Rate API
+# Exchange Rate API
 
-This directory contains Docker and Docker Compose configurations for the Exchange Rate API.
+This API provides exchange rates using various exchange rate providers. 
+Currently supports Czech National Bank (CZK) as the base currency provider.
 
-## Quick Start
+Deployed via cicd pipeline on hetzner 
 
-### Production Setup# Build and start the services
-docker-compose up -d
+http://128.140.72.56:18080/swagger/index.html
 
-# View logs
-docker-compose logs -f exchangerate-api
+## ?? API Documentation
 
-# Stop services
-docker-compose down
-### Development Setup# Use the development compose file
-docker-compose -f docker-compose.dev.yml up -d
+You can access the interactive Swagger UI documentation at:
+- **Swagger UI**: `/swagger`
+- **OpenAPI JSON**: `/swagger/v1/swagger.json`
 
-# View logs
-docker-compose -f docker-compose.dev.yml logs -f exchangerate-api
+The Swagger UI provides:
+- Interactive API testing
+- Detailed endpoint documentation
+- Request/response examples
+- Schema definitions
+- Authentication details (when applicable)
 
-# Stop services
-docker-compose -f docker-compose.dev.yml down
-## Services
+## Endpoints
 
-### ExchangeRate API
-- **Port**: 8080
-- **Swagger UI**: http://localhost:8080/swagger
-- **Health Check**: http://localhost:8080/swagger (using Swagger endpoint)
-- **Caching**: In-memory FusionCache (5-minute TTL)
+### POST /api/exchangerate/rates
+Get exchange rates for specified currencies using a JSON request body.
 
-## Configuration
+**Request Body:**{
+  "currencyCodes": ["USD", "EUR", "JPY"],
+  "baseCurrency": "CZK"
+}
+**Response:**
+{
+  "baseCurrency": "CZK",
+  "rates": [
+    {
+      "fromCurrency": "USD",
+      "toCurrency": "CZK",
+      "rate": 22.5000,
+      "displayValue": "USD/CZK=22.5000"
+    },
+    {
+      "fromCurrency": "EUR", 
+      "toCurrency": "CZK",
+      "rate": 24.0000,
+      "displayValue": "EUR/CZK=24.0000"
+    }
+  ],
+  "retrievedAt": "2024-01-15T10:30:00Z"
+}
+### GET /api/exchangerate/rates
+Get exchange rates using query parameters.
 
-### Docker Compose Files
+**Parameters:**
+- `currencies` (required): Comma-separated currency codes (e.g., "USD,EUR,JPY")
+- `baseCurrency` (optional): Base currency code (defaults to "CZK")
 
-- `docker-compose.yml`: Production setup with single API service
-- `docker-compose.dev.yml`: Development setup with enhanced logging and volume mounting
+**Example:** `/api/exchangerate/rates?currencies=USD,EUR,JPY&baseCurrency=CZK`
 
-## Caching
+### GET /api/exchangerate/providers
+Get information about available exchange rate providers.
 
-### In-Memory Caching with FusionCache
-The application uses **ZiggyCreatures.FusionCache** for in-memory caching:
-- **Cache Duration**: 5 minutes for exchange rate data
-- **Cache Key**: "CnbDailyRates"
-- **Benefits**: Fast access, automatic expiration, no external dependencies
-- **Persistence**: Cache is reset when container restarts (which is fine for 5-minute TTL data)
+**Response:**{
+  "providers": [
+    {
+      "currencyCode": "CZK",
+      "name": "Czech National Bank",
+      "description": "Provides exchange rates with CZK as base currency",
+      "endpoint": "https://api.cnb.cz/cnbapi/exrates/daily"
+    }
+  ]
+}
+## Examples
 
-### Cache Behavior
-- First request to exchange rates: Fetches from Czech National Bank API
-- Subsequent requests (within 5 minutes): Served from in-memory cache
-- After 5 minutes: Cache expires, next request fetches fresh data
+### Using Swagger UI (Recommended)
+1. Start the API in development mode
+2. Navigate to `/swagger` in your browser
+3. Use the interactive interface to test endpoints
+4. View detailed documentation and examples
 
-## Building
+### Using curl
+# POST request with JSON body
+curl -X POST "https://localhost:7000/api/exchangerate/rates" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "currencyCodes": ["USD", "EUR", "JPY"],
+    "baseCurrency": "CZK"
+  }'
 
-### Manual Docker Build# Build the API image
-docker build -f ExchangeRateApi/Dockerfile -t exchangerate-api:latest .
+# GET request with query parameters  
+curl "https://localhost:7000/api/exchangerate/rates?currencies=USD,EUR,JPY"
 
-# Run the container
-docker run -p 8080:8080 exchangerate-api:latest
-### Docker Compose Build# Build and start services
-docker-compose up --build -d
+# Get available providers
+curl "https://localhost:7000/api/exchangerate/providers"
 
-# Rebuild specific service
-docker-compose build exchangerate-api
-## Data Persistence
+### Using C#
+var client = new HttpClient();
+var request = new
+{
+    CurrencyCodes = new[] { "USD", "EUR", "JPY" },
+    BaseCurrency = "CZK"
+};
 
-### Logs (Development)
-Application logs are mounted to `./ExchangeRateApi/logs` directory in development mode.docker-compose -f docker-compose.dev.yml logs -f exchangerate-api
+var json = JsonSerializer.Serialize(request);
+var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-### Cache Data
-No persistence needed - in-memory cache with 5-minute TTL is perfect for exchange rate data that changes daily.
+var response = await client.PostAsync("https://localhost:7000/api/exchangerate/rates", content);
+var responseJson = await response.Content.ReadAsStringAsync();
 
-## Networking
+## ?? Getting Started
 
-The API service uses the `exchangerate-network` bridge network for isolation from other Docker applications.
+1. **Clone and build the project**
+2. **Run the API**: `dotnet run --project ExchangeRateApi`
+3. **Access Swagger UI**: Navigate to `https://localhost:7000/swagger`
+4. **Test endpoints**: Use the interactive Swagger interface or any HTTP client
 
-## Health Checks
+## Error Handling
 
-Health check is configured to test the Swagger endpoint availability:
-- **Endpoint**: `http://localhost:8080/swagger`
-- **Interval**: Every 30 seconds
-- **Timeout**: 10 seconds
-- **Retries**: 3 attempts
-- **Start Period**: 40 seconds
+The API returns appropriate HTTP status codes:
+- `200 OK`: Successful request
+- `400 Bad Request`: Invalid request (missing currencies, etc.)
+- `500 Internal Server Error`: Server error
 
-## Troubleshooting
+Error responses include descriptive messages to help with debugging.
 
-### Common Issues
+## Features
 
-1. **Port Conflicts**# Check if port 8080 is in use
-netstat -tulpn | grep :8080
-2. **Container Logs**# View API logs
-   docker-compose logs exchangerate-api
-3. **Cache Issues**
-   - Cache is in-memory only
-   - Restarting container clears cache (normal behavior)
-   - Cache automatically expires after 5 minutes
-
-4. **Rebuild Clean**# Clean rebuild
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+- ? **Interactive Documentation**: Swagger UI with examples and testing capabilities
+- ? **Flexible Input**: POST (JSON) and GET (query params) request methods
+- ? **Comprehensive Validation**: Input validation with clear error messages
+- ? **Caching**: Built-in caching for improved performance
+- ? **Logging**: Structured logging throughout the application
+- ? **Error Handling**: Robust error handling with appropriate HTTP status codes
