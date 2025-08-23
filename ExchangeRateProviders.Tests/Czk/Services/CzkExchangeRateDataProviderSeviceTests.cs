@@ -1,8 +1,10 @@
 using ExchangeRateProviders.Core.Model;
+using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Services;
 using ExchangeRateProviders.Czk.Clients;
 using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Model;
+using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
@@ -48,6 +50,10 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(result[1].SourceCurrency.Code, Is.EqualTo("EUR"));
             apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>());
             mapper.Received(1).MapToExchangeRates(Arg.Any<IEnumerable<CnbApiExchangeRateDto>>());
+            
+            // Verify expected log messages
+            logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
+            logger.VerifyLogInformation(1, $"Mapped 2 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
         });
     }
 
@@ -83,6 +89,10 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(first, Is.EqualTo(second)); // same cached content
             apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // factory executed only once
             mapper.Received(1).MapToExchangeRates(Arg.Any<IEnumerable<CnbApiExchangeRateDto>>());
+            
+            // Verify log messages - should only log once since subsequent call uses cache
+            logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
+            logger.VerifyLogInformation(1, $"Mapped 1 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
         });
     }
 }

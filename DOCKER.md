@@ -64,7 +64,7 @@ docker-compose build exchangerate-api
 ## Data Persistence
 
 ### Logs (Development)
-Application logs are mounted to `./ExchangeRateApi/logs` directory in development mode.docker-compose -f docker-compose.dev.yml logs -f exchangerate-api
+Application logs are mounted to `./ExchangeRateApi/logs` directory in development mode.
 
 ### Cache Data
 No persistence needed - in-memory cache with 5-minute TTL is perfect for exchange rate data that changes daily.
@@ -99,3 +99,15 @@ netstat -tulpn | grep :8080
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
+### Memory and Performance
+
+For production deployments, consider:
+- Setting memory limits for containers
+- Monitoring memory usage of in-memory cache
+- Container resource limits based on your load
+
+## Security Notes
+
+- API exposes Swagger UI - consider disabling in production by setting `ASPNETCORE_ENVIRONMENT=Production` without development middleware
+- Use HTTPS in production environments
+- No external cache dependencies simplifies security surface

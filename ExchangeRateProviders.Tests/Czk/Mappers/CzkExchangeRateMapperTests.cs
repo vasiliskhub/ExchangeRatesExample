@@ -2,6 +2,7 @@ using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Model;
+using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
@@ -23,6 +24,11 @@ public class CzkExchangeRateMapperTests
             new() { CurrencyCode = "USD", Amount = 1, Rate = 22.50m, ValidFor = now },
             new() { CurrencyCode = "EUR", Amount = 2, Rate = 48.00m, ValidFor = now }
         };
+        var expected = new List<(string Source, string Target, decimal Value)>
+        {
+            ("USD", Constants.ExchangeRateProviderCurrencyCode, 22.50m),
+            ("EUR", Constants.ExchangeRateProviderCurrencyCode, 24.00m)
+        };
 
         // Act
         var result = mapper.MapToExchangeRates(source).ToList();
@@ -30,13 +36,14 @@ public class CzkExchangeRateMapperTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(result, Has.Count.EqualTo(2));
-            Assert.That(result[0].SourceCurrency.Code, Is.EqualTo("USD"));
-            Assert.That(result[0].TargetCurrency.Code, Is.EqualTo(Constants.ExchangeRateProviderCurrencyCode));
-            Assert.That(result[0].Value, Is.EqualTo(22.50m));
-            Assert.That(result[1].SourceCurrency.Code, Is.EqualTo("EUR"));
-			Assert.That(result[1].TargetCurrency.Code, Is.EqualTo(Constants.ExchangeRateProviderCurrencyCode));
-			Assert.That(result[1].Value, Is.EqualTo(24.00m));
+            Assert.That(result, Has.Count.EqualTo(expected.Count));
+            for (int i = 0; i < expected.Count; i++)
+            {
+                var exp = expected[i];
+                Assert.That(result[i].SourceCurrency.Code, Is.EqualTo(exp.Source), $"Source at index {i}");
+                Assert.That(result[i].TargetCurrency.Code, Is.EqualTo(exp.Target), $"Target at index {i}");
+                Assert.That(result[i].Value, Is.EqualTo(exp.Value), $"Value at index {i}");
+            }
         });
     }
 
@@ -81,6 +88,8 @@ public class CzkExchangeRateMapperTests
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].SourceCurrency.Code, Is.EqualTo("JPY"));
             Assert.That(result[0].Value, Is.EqualTo(0.17m));
+            logger.VerifyLogDebug(1, "Skipping invalid rate entry for USD with non-positive amount 0");
+            logger.VerifyLogDebug(1, "Skipping invalid rate entry for EUR with non-positive amount -5");
         });
     }
 
@@ -94,10 +103,7 @@ public class CzkExchangeRateMapperTests
         // Act
         var result = mapper.MapToExchangeRates(Array.Empty<CnbApiExchangeRateDto>()).ToList();
 
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result, Is.Empty);
-        });
-    }
+		// Assert
+		Assert.That(result, Is.Empty);
+	}
 }

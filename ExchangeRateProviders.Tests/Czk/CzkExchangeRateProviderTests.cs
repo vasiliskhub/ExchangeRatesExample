@@ -1,6 +1,7 @@
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
+using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
@@ -25,6 +26,9 @@ public class CzkExchangeRateProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.Empty);
+            
+            // Verify expected log message for null currencies
+            logger.VerifyLogWarning(1, "Requested currencies collection is null. Returning empty result.");
         });
     }
 
@@ -54,6 +58,10 @@ public class CzkExchangeRateProviderTests
             Assert.That(result.Any(r => r.SourceCurrency.Code == "USD"));
             Assert.That(result.Any(r => r.SourceCurrency.Code == "JPY"));
             Assert.That(result.All(r => r.TargetCurrency.Code == "CZK"));
+            
+            // Verify expected log messages
+            logger.VerifyLogDebug(1, $"Fetching exchange rates for 2 requested currencies via provider {Constants.ExchangeRateProviderCurrencyCode}.");
+            logger.VerifyLogInformation(1, $"Provider {Constants.ExchangeRateProviderCurrencyCode} returned 2/3 matching rates.");
         });
     }
 }

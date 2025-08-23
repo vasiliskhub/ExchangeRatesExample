@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
 using ExchangeRateProviders.Czk.Model;
+using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
@@ -53,6 +53,8 @@ public class CzkCnbApiClientTests
             Assert.That(result[1].CurrencyCode, Is.EqualTo("EUR"));
             Assert.That(result[1].Rate, Is.EqualTo(24.00m));
             Assert.That(handler.CallCount, Is.EqualTo(1));
+            logger.VerifyLogInformation(1, "Requesting CNB rates from https://api.cnb.cz/cnbapi/exrates/daily?lang=EN");
+            logger.VerifyLogInformation(1, "CNB returned 2 raw rates.");
         });
     }
 
@@ -78,6 +80,8 @@ public class CzkCnbApiClientTests
         {
             Assert.That(result, Is.Empty);
             Assert.That(handler.CallCount, Is.EqualTo(1));
+            logger.VerifyLogInformation(1, "Requesting CNB rates from https://api.cnb.cz/cnbapi/exrates/daily?lang=EN");
+            logger.VerifyLogWarning(1, "CNB rates response empty.");
         });
     }
 
@@ -112,6 +116,8 @@ public class CzkCnbApiClientTests
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].CurrencyCode, Is.EqualTo("JPY"));
             Assert.That(handler.CallCount, Is.EqualTo(2)); // Initial call + 1 retry
+            logger.VerifyLogInformation(1, "Requesting CNB rates from https://api.cnb.cz/cnbapi/exrates/daily?lang=EN");
+            logger.VerifyLogInformation(1, "CNB returned 1 raw rates.");
         });
     }
 
@@ -133,11 +139,14 @@ public class CzkCnbApiClientTests
         {
             Assert.ThrowsAsync<HttpRequestException>(() => client.GetDailyRatesRawAsync());
             Assert.That(handler.CallCount, Is.EqualTo(4)); // Initial + 3 retries
+            logger.VerifyLogInformation(1, "Requesting CNB rates from https://api.cnb.cz/cnbapi/exrates/daily?lang=EN");
+            logger.VerifyLogInformationNotContaining("CNB returned");
+            logger.VerifyLogWarningNotContaining("CNB rates response empty");
         });
     }
 
     [Test]
-    public async Task GetDailyRatesRawAsync_RespectsCancellationToken()
+    public void GetDailyRatesRawAsync_RespectsCancellationToken()
     {
         // Arrange
         var logger = Substitute.For<ILogger<CzkCnbApiClient>>();
@@ -152,6 +161,11 @@ public class CzkCnbApiClientTests
             Assert.That(async () => await client.GetDailyRatesRawAsync(cts.Token), 
                 Throws.InstanceOf<OperationCanceledException>());
             Assert.That(handler.CallCount, Is.EqualTo(1));
+            
+            // Verify exact log message that was logged (before cancellation)
+            logger.VerifyLogInformation(1, "Requesting CNB rates from https://api.cnb.cz/cnbapi/exrates/daily?lang=EN");
+            logger.VerifyLogInformationNotContaining("CNB returned");
+            logger.VerifyLogWarningNotContaining("CNB rates response empty");
         });
     }
 
