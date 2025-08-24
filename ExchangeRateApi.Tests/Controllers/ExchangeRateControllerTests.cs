@@ -8,8 +8,9 @@ using NSubstitute;
 using NUnit.Framework;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
+using ExchangeRateApi.Tests.TestHelpers;
 
-namespace ExchangeRateApi.Tests;
+namespace ExchangeRateApi.Tests.Controllers;
 
 [TestFixture]
 public class ExchangeRateControllerTests
@@ -55,6 +56,8 @@ public class ExchangeRateControllerTests
             var response = (ExchangeRateResponse)((OkObjectResult)result.Result!).Value!;
             Assert.That(response.Rates, Has.Count.EqualTo(2));
             Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Successfully retrieved");
         });
     }
 
@@ -76,6 +79,8 @@ public class ExchangeRateControllerTests
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
             var bad = (BadRequestObjectResult)result.Result!;
             Assert.That(bad.Value, Is.InstanceOf<string[]>());
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Warning, "Validation failed for request");
         });
     }
 
@@ -89,7 +94,12 @@ public class ExchangeRateControllerTests
         var result = await _controller.GetExchangeRates(request);
 
         // Assert
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Warning, "empty currency codes");
+        });
     }
 
     [Test]
@@ -107,8 +117,13 @@ public class ExchangeRateControllerTests
         var result = await _controller.GetExchangeRates(request);
 
         // Assert
-        var response = (ExchangeRateResponse)((OkObjectResult)result.Result!).Value!;
-        Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
+        Assert.Multiple(() =>
+        {
+            var response = (ExchangeRateResponse)((OkObjectResult)result.Result!).Value!;
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Successfully retrieved");
+        });
     }
 
     [Test]
@@ -124,7 +139,12 @@ public class ExchangeRateControllerTests
         var result = await _controller.GetExchangeRates(request);
 
         // Assert
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Error, "Invalid operation when getting exchange rates");
+        });
     }
 
     [Test]
@@ -147,10 +167,11 @@ public class ExchangeRateControllerTests
             Assert.That(result.Result, Is.TypeOf<ObjectResult>());
             var obj = (ObjectResult)result.Result!;
             Assert.That(obj.StatusCode, Is.EqualTo(500));
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Error, "Unexpected error occurred while getting exchange rates");
         });
     }
 
-    // GET endpoint tests
     [Test]
     public async Task GetExchangeRatesQuery_Valid_ReturnsOk()
     {
@@ -165,7 +186,12 @@ public class ExchangeRateControllerTests
         var result = await _controller.GetExchangeRatesQuery("USD", "CZK");
 
         // Assert
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Successfully retrieved");
+        });
     }
 
     [Test]
@@ -181,8 +207,8 @@ public class ExchangeRateControllerTests
     [Test]
     public async Task GetExchangeRatesQuery_TooManyCodes_ReturnsBadRequest()
     {
-        // Arrange (codes variable kept for clarity even if not used directly below)
-        var codes = string.Join(',', Enumerable.Range(0,11).Select(i => $"A{i:00}".Substring(0,3))); // will violate regex too but length first
+        // Arrange
+        var codes = string.Join(',', Enumerable.Range(0,11).Select(i => $"A{i:00}".Substring(0,3)));
 
         // Act
         var result = await _controller.GetExchangeRatesQuery("USD,EUR,JPY,AAA,BBB,CCC,DDD,EEE,FFF,GGG,HHH", "CZK");
@@ -205,8 +231,27 @@ public class ExchangeRateControllerTests
         var result = await _controller.GetExchangeRatesQuery("USD", null);
 
         // Assert
-        var ok = (OkObjectResult)result.Result!;
-        var response = (ExchangeRateResponse)ok.Value!;
-        Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
+        Assert.Multiple(() =>
+        {
+            var ok = (OkObjectResult)result.Result!;
+            var response = (ExchangeRateResponse)ok.Value!;
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Received request for exchange rates");
+            _logger.VerifyLogContaining<ExchangeRateController>(1, LogLevel.Information, "Successfully retrieved");
+        });
+    }
+
+    [Test]
+    public void GetAvailableProviders_ReturnsOkWithProviderList()
+    {
+        // Arrange / Act
+        var result = _controller.GetAvailableProviders();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            var ok = result.Result as OkObjectResult;
+            Assert.That(ok, Is.Not.Null);
+        });
     }
 }

@@ -10,7 +10,6 @@ using FluentValidation.Results;
 namespace ExchangeRateApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [SwaggerTag("Exchange Rate operations for retrieving currency exchange rates")]
 public class ExchangeRateController : ControllerBase
 {
@@ -37,7 +36,7 @@ public class ExchangeRateController : ControllerBase
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If the request is invalid or no currency codes are provided</response>
     /// <response code="500">If there was an internal server error</response>
-    [HttpPost("rates")]
+    [HttpPost(ApiEndpoints.ExchangeRates.RatesPost)]
     [SwaggerOperation(
         Summary = "Get exchange rates using POST request",
         Description = "Retrieves exchange rates for specified currencies using a JSON request body. Supports multiple currencies and custom target currency.",
@@ -105,8 +104,7 @@ public class ExchangeRateController : ControllerBase
                     SourceCurrency = rate.SourceCurrency.Code,
                     TargetCurrency = rate.TargetCurrency.Code,
                     Rate = rate.Value
-                }).ToList(),
-                RetrievedAt = DateTime.UtcNow
+                }).ToList()
             };
 
             return Ok(response);
@@ -132,7 +130,7 @@ public class ExchangeRateController : ControllerBase
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If no currencies are provided or the request is invalid</response>
     /// <response code="500">If there was an internal server error</response>
-    [HttpGet("rates")]
+    [HttpGet(ApiEndpoints.ExchangeRates.RatesGet)]
     [SwaggerOperation(
         Summary = "Get exchange rates using GET request",
         Description = "Retrieves exchange rates for specified currencies using query parameters. Convenient for simple requests.",
@@ -177,7 +175,7 @@ public class ExchangeRateController : ControllerBase
     /// </summary>
     /// <returns>List of available currency providers</returns>
     /// <response code="200">Returns the list of available providers</response>
-    [HttpGet("providers")]
+    [HttpGet(ApiEndpoints.ExchangeRates.Providers)]
     [SwaggerOperation(
         Summary = "Get available exchange rate providers",
         Description = "Returns information about all available exchange rate providers and their supported currencies.",
@@ -185,8 +183,6 @@ public class ExchangeRateController : ControllerBase
     [SwaggerResponse(200, "Available providers retrieved successfully")]
     public ActionResult<object> GetAvailableProviders()
     {
-        // For now, we only have CZK provider
-        // This could be extended to return all registered providers
         var providers = new[]
         {
             new { 

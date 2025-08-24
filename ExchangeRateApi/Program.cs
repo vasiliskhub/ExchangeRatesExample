@@ -7,6 +7,7 @@ using ExchangeRateApi.Models;
 using ExchangeRateApi.Models.Validators;
 using FluentValidation;
 using Microsoft.OpenApi.Models;
+using ExchangeRateApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,7 @@ builder.Services.AddSwaggerGen(c =>
 	c.SwaggerDoc("v1", new OpenApiInfo
 	{
 		Title = "Exchange Rate API",
-		Version = "v1",
+		Version = ApiEndpoints.ApiVersion,
 		Description = "API for retrieving exchange rates from various providers",
 		Contact = new OpenApiContact
 		{
@@ -54,8 +55,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 	{
-		c.SwaggerEndpoint("/swagger/v1/swagger.json", "Exchange Rate API v1");
-		c.RoutePrefix = "swagger"; // -> /swagger
+		c.SwaggerEndpoint("/swagger/v1/swagger.json", $"Exchange Rate API {ApiEndpoints.ApiVersion}");
+		c.RoutePrefix = "swagger";
 		c.DocumentTitle = "Exchange Rate API Documentation";
 		c.DefaultModelsExpandDepth(2);
 		c.DefaultModelRendering(Swashbuckle.AspNetCore.SwaggerUI.ModelRendering.Example);
