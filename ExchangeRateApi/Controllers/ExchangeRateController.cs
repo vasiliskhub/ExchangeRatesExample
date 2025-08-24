@@ -3,6 +3,9 @@ using ExchangeRateProviders;
 using ExchangeRateProviders.Core.Model;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Text.RegularExpressions;
+using FluentValidation;
+using FluentValidation.Results;
 
 namespace ExchangeRateApi.Controllers;
 
@@ -13,13 +16,17 @@ public class ExchangeRateController : ControllerBase
 {
     private readonly IExchangeRateProviderFactory _exchangeRateProviderFactory;
     private readonly ILogger<ExchangeRateController> _logger;
+    private readonly IValidator<ExchangeRateRequest>? _requestValidator;
+    private static readonly Regex QueryCodesRegex = new("^[A-Za-z]{3}(?:,[A-Za-z]{3})*$", RegexOptions.Compiled);
 
     public ExchangeRateController(
         IExchangeRateProviderFactory exchangeRateProviderFactory, 
-        ILogger<ExchangeRateController> logger)
+        ILogger<ExchangeRateController> logger,
+        IValidator<ExchangeRateRequest>? requestValidator = null)
     {
         _exchangeRateProviderFactory = exchangeRateProviderFactory;
         _logger = logger;
+        _requestValidator = requestValidator;
     }
 
     /// <summary>
@@ -50,6 +57,18 @@ public class ExchangeRateController : ControllerBase
             {
                 _logger.LogWarning("Exchange rate request received with empty currency codes");
                 return BadRequest("At least one currency code must be provided");
+            }
+
+            // Validate request using FluentValidation if validator is configured
+            if (_requestValidator != null)
+            {
+                ValidationResult validationResult = await _requestValidator.ValidateAsync(request);
+                if (!validationResult.IsValid)
+                {
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+                    _logger.LogWarning("Validation failed for request: {Errors}", string.Join(", ", errors));
+                    return BadRequest(errors);
+                }
             }
 
             // Use provided target currency or default to CZK
@@ -120,7 +139,7 @@ public class ExchangeRateController : ControllerBase
         OperationId = "GetExchangeRatesGet")]
     [SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))
     ]
-    [SwaggerResponse(400, "Invalid request - missing currency codes")]
+    [SwaggerResponse(400, "Invalid request - missing currency codes or format violation")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRatesQuery(
         [FromQuery, SwaggerParameter("Comma-separated currency codes (e.g., 'USD,EUR,JPY')", Required = true)] string currencies,
@@ -131,16 +150,23 @@ public class ExchangeRateController : ControllerBase
             return BadRequest("Currency codes parameter is required");
         }
 
-        var currencyCodes = currencies
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(c => c.Trim())
-            .Where(c => !string.IsNullOrWhiteSpace(c))
-            .ToList();
+        if (!QueryCodesRegex.IsMatch(currencies))
+        {
+            return BadRequest("Currency codes must be in XXX,YYY,ZZZ format with 3-letter codes");
+        }
+
+        var split = currencies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (split.Length > 10)
+        {
+            return BadRequest("A maximum of 10 currency codes is allowed for GET requests");
+        }
+
+        var currencyCodes = split.Select(c => c.Trim().ToUpperInvariant()).ToList();
 
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = currencyCodes,
-            TargetCurrency = targetCurrency
+            TargetCurrency = targetCurrency?.ToUpperInvariant()
         };
 
         return await GetExchangeRates(request);

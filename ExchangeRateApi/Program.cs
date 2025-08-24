@@ -3,12 +3,16 @@ using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
 using ExchangeRateProviders.Czk.Services;
+using ExchangeRateApi.Models;
+using ExchangeRateApi.Models.Validators;
+using FluentValidation;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddSingleton<IValidator<ExchangeRateRequest>, ExchangeRateRequestValidator>();
 
 // Add Swagger/OpenAPI services
 builder.Services.AddEndpointsApiExplorer();
@@ -80,6 +84,3 @@ static void ConfigureExchangeRateServices(IServiceCollection services)
 	services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
 	services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();
 }
-
-// Make Program class accessible for testing
-public partial class Program { }
