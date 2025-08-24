@@ -21,8 +21,6 @@ public class ExchangeRateProviderFactoryTests
         Assert.Multiple(() =>
         {
             Assert.Throws<InvalidOperationException>(() => factory.GetProvider("USD"));
-            
-            // Verify expected log message for unknown currency
             logger.VerifyLogError(1, "No exchange rate provider registered for currency USD");
         });
     }
@@ -38,8 +36,6 @@ public class ExchangeRateProviderFactoryTests
         Assert.Multiple(() =>
         {
             Assert.Throws<ArgumentNullException>(() => factory.GetProvider(null!));
-            
-            // Verify expected log message for null currency
             logger.VerifyLogError(1, "Attempted to get provider with null currency code.");
         });
     }
@@ -61,8 +57,6 @@ public class ExchangeRateProviderFactoryTests
         Assert.Multiple(() =>
         {
             Assert.That(resolved, Is.SameAs(provider));
-            
-            // Verify expected log message for successful resolution
             factoryLogger.VerifyLogDebug(1, $"Resolved exchange rate provider for currency {Constants.ExchangeRateProviderCurrencyCode}");
         });
     }

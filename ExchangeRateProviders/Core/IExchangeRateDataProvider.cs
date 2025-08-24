@@ -4,6 +4,6 @@ namespace ExchangeRateProviders.Core
 {
 	public interface IExchangeRateDataProvider
 	{
-		Task<IEnumerable<ExchangeRate>> GetDailyRatesAsync();
+		Task<IEnumerable<ExchangeRate>> GetDailyRatesAsync(CancellationToken cancellationToken);
 	}
 }

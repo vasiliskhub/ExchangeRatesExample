@@ -1,11 +1,42 @@
-# Exchange Rate API
+# Exchange Rates Example Solution
 
-This API provides exchange rates using various exchange rate providers. 
-Currently supports Czech National Bank (CZK) as the base currency provider.
+A .NET 9 multi-project solution demonstrating a clean, extensible approach to fetching and exposing foreign exchange rates.
 
-Deployed via ci/cd pipeline on hetzner 
+## Projects
 
-http://128.140.72.56:18080/swagger/index.html
+- ExchangeRateApi (ASP.NET Core Web API)
+  - Exposes HTTP endpoints for requesting exchange rates and listing providers.
+  - Uses FluentValidation for request validation and Swagger / Swashbuckle for OpenAPI docs.
+- ExchangeRateProviders (Class Library)
+  - Core abstractions (IExchangeRateProvider, IExchangeRateDataProvider, IExchangeRateProviderFactory).
+  - Concrete CZK provider backed by the Czech National Bank feed.
+  - Designed for easy extension with additional base currency providers.
+- ExchangeRateApi.Tests (NUnit)
+  - Unit tests for controller behavior, validation, logging, and endpoint responses.
+- ExchangeRateProviders.Tests (NUnit)
+  - Unit tests for provider filtering, logging, and edge cases.
+- ExchangeRateUpdater (Console App)
+  - Simple example consumer that resolves a provider and prints exchange rates to the console.
+
+## Get up and Running with docker
+
+```
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build 
+```
+
+- The API will be available at `http://localhost:8080/swagger/index.html`
+
+- Alternatively public access to the API via http://128.140.72.56:18080/swagger/index.html, deployed on hetzner cloud via github actions CI/CD pipeline.
+
+
+## Endpoint Summary (v1)
+All endpoints are versioned under `v1/api`.
+
+- `POST v1/api/exchange-rates/rates` Request rates via JSON body (list of source currency codes + optional target currency; defaults to CZK).
+- `GET  v1/api/exchange-rates/rates?currencies=USD,EUR&targetCurrency=CZK` Query version.
+- `GET  v1/api/providers` List available providers.
+
+Swagger UI: `/swagger` (served once the API is running).
 
 ## API Documentation
 
@@ -20,104 +51,19 @@ The Swagger UI provides:
 - Schema definitions
 - Authentication details (when applicable)
 
-## Endpoints
+## Adding a New Provider
+1. Implement `IExchangeRateDataProvider` to fetch and map raw data.
+2. Implement `IExchangeRateProvider` (set `ExchangeRateProviderCurrencyCode`).
+3. Register the implementation (`AddSingleton<IExchangeRateProvider, NewProvider>()`).
+4. The factory auto-resolves by currency code.
 
-### POST /api/exchangerate/rates
-Get exchange rates for specified currencies using a JSON request body.
+## Configuration & Extensibility
+- Logging: Console provider added by default; extend via `appsettings.json` or additional logging providers.
+- Caching: FusionCache registered (ready for adding decorators / distributed cache later).
+- Validation: Add new validators implementing `IValidator<T>` and register in DI.
 
-**Request Body:**{
-  "currencyCodes": ["USD", "EUR", "JPY"],
-  "baseCurrency": "CZK"
-}
-**Response:**
-{
-  "baseCurrency": "CZK",
-  "rates": [
-    {
-      "fromCurrency": "USD",
-      "toCurrency": "CZK",
-      "rate": 22.5000,
-      "displayValue": "USD/CZK=22.5000"
-    },
-    {
-      "fromCurrency": "EUR", 
-      "toCurrency": "CZK",
-      "rate": 24.0000,
-      "displayValue": "EUR/CZK=24.0000"
-    }
-  ],
-  "retrievedAt": "2024-01-15T10:30:00Z"
-}
-### GET /api/exchangerate/rates
-Get exchange rates using query parameters.
-
-**Parameters:**
-- `currencies` (required): Comma-separated currency codes (e.g., "USD,EUR,JPY")
-- `baseCurrency` (optional): Base currency code (defaults to "CZK")
-
-**Example:** `/api/exchangerate/rates?currencies=USD,EUR,JPY&baseCurrency=CZK`
-
-### GET /api/exchangerate/providers
-Get information about available exchange rate providers.
-
-**Response:**{
-  "providers": [
-    {
-      "currencyCode": "CZK",
-      "name": "Czech National Bank",
-      "description": "Provides exchange rates with CZK as base currency",
-      "endpoint": "https://api.cnb.cz/cnbapi/exrates/daily"
-    }
-  ]
-}
-## Examples
-
-### Using Swagger UI (Recommended)
-1. Start the API in development mode
-2. Navigate to `/swagger` in your browser
-3. Use the interactive interface to test endpoints
-4. View detailed documentation and examples
-
-### Using curl
-# POST request with JSON body
-curl -X POST "https://localhost:7000/api/exchangerate/rates" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "currencyCodes": ["USD", "EUR", "JPY"],
-    "baseCurrency": "CZK"
-  }'
-
-# GET request with query parameters  
-curl "https://localhost:7000/api/exchangerate/rates?currencies=USD,EUR,JPY"
-
-# Get available providers
-curl "https://localhost:7000/api/exchangerate/providers"
-
-### Using C#
-var client = new HttpClient();
-var request = new
-{
-    CurrencyCodes = new[] { "USD", "EUR", "JPY" },
-    BaseCurrency = "CZK"
-};
-
-var json = JsonSerializer.Serialize(request);
-var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-var response = await client.PostAsync("https://localhost:7000/api/exchangerate/rates", content);
-var responseJson = await response.Content.ReadAsStringAsync();
-
-## ?? Getting Started
-
-1. **Clone and build the project**
-2. **Run the API**: `dotnet run --project ExchangeRateApi`
-3. **Access Swagger UI**: Navigate to `https://localhost:7000/swagger`
-4. **Test endpoints**: Use the interactive Swagger interface or any HTTP client
-
-## Error Handling
-
-The API returns appropriate HTTP status codes:
-- `200 OK`: Successful request
-- `400 Bad Request`: Invalid request (missing currencies, etc.)
-- `500 Internal Server Error`: Server error
-
+## Future Enhancements
+- Additional provider implementations (ECB, USD base, etc.).
+- Fallback rates sources (csv,text,xml) in case of bank api downtime.
+- Smart caching (calendar based) / persistent caching.
+- Health checks (`/healthz`).

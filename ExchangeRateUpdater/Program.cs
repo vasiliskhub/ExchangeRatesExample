@@ -31,7 +31,7 @@ try
 {
     var factory = host.Services.GetRequiredService<IExchangeRateProviderFactory>();
     var provider = factory.GetProvider(ExchangeRateProviderCurrencyCode);
-    var rates = await provider.GetExchangeRatesAsync(currencies);
+    var rates = await provider.GetExchangeRatesAsync(currencies, CancellationToken.None);
 
 	Console.WriteLine($"Successfully retrieved {rates.Count()} exchange rates:");
     foreach (var rate in rates)
@@ -49,7 +49,7 @@ return;
 static void ConfigureServices(IServiceCollection services)
 {
     services.AddFusionCache();
-    services.AddHttpClient<ICzkCnbClient, CzkCnbApiClient>();
+    services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
     services.AddTransient<IExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
     services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
     services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();

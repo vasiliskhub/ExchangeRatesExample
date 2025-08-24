@@ -13,12 +13,12 @@ namespace ExchangeRateProviders.Czk.Services
 		private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
 		private readonly IFusionCache _cache;
-		private readonly ICzkCnbClient _apiClient;
+		private readonly ICzkCnbApiClient _apiClient;
 		private readonly ILogger<CzkExchangeRateDataProviderSevice> _logger;
 
 		public CzkExchangeRateDataProviderSevice(
 			IFusionCache cache,
-			ICzkCnbClient apiClient,
+			ICzkCnbApiClient apiClient,
 			ILogger<CzkExchangeRateDataProviderSevice> logger)
 		{
 			_cache = cache;
@@ -26,12 +26,12 @@ namespace ExchangeRateProviders.Czk.Services
 			_logger = logger;
 		}
 
-		public async Task<IEnumerable<ExchangeRate>> GetDailyRatesAsync()
+		public async Task<IEnumerable<ExchangeRate>> GetDailyRatesAsync(CancellationToken cancellationToken = default)
 		{
 			return await _cache.GetOrSetAsync(CacheKey, async _ =>
 			{
 				_logger.LogInformation("Cache miss for CNB daily rates. Fetching and mapping.");
-				var raw = await _apiClient.GetDailyRatesRawAsync().ConfigureAwait(false);
+				var raw = await _apiClient.GetDailyRatesRawAsync(cancellationToken).ConfigureAwait(false);
 				var mapped = raw.MapToExchangeRates();
 				_logger.LogInformation("Mapped {Count} CNB exchange rates (target currency {TargetCurrency}).", mapped.Count(), Constants.ExchangeRateProviderCurrencyCode);
 				return (IEnumerable<ExchangeRate>)mapped;

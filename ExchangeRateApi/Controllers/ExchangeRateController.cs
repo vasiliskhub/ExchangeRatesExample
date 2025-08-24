@@ -32,6 +32,7 @@ public class ExchangeRateController : ControllerBase
     /// Get exchange rates for specified currencies using JSON request
     /// </summary>
     /// <param name="request">The exchange rate request containing currency codes and optional target currency</param>
+    /// <param name="cancellationToken">Request cancellation token</param>
     /// <returns>Exchange rates for the requested currencies</returns>
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If the request is invalid or no currency codes are provided</response>
@@ -46,7 +47,8 @@ public class ExchangeRateController : ControllerBase
     [SwaggerResponse(400, "Invalid request - missing or invalid currency codes")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRates(
-        [FromBody, SwaggerRequestBody("Request containing currency codes and optional target currency")] ExchangeRateRequest request)
+        [FromBody, SwaggerRequestBody("Request containing currency codes and optional target currency")] ExchangeRateRequest request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -61,7 +63,7 @@ public class ExchangeRateController : ControllerBase
             // Validate request using FluentValidation if validator is configured
             if (_requestValidator != null)
             {
-                ValidationResult validationResult = await _requestValidator.ValidateAsync(request);
+                ValidationResult validationResult = await _requestValidator.ValidateAsync(request, cancellationToken);
                 if (!validationResult.IsValid)
                 {
                     var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
@@ -89,7 +91,7 @@ public class ExchangeRateController : ControllerBase
             }
 
             // Get exchange rates
-            var exchangeRates = await provider.GetExchangeRatesAsync(currencies);
+            var exchangeRates = await provider.GetExchangeRatesAsync(currencies, cancellationToken);
             var ratesList = exchangeRates.ToList();
 
             _logger.LogInformation("Successfully retrieved {Count} exchange rates for target currency {TargetCurrency}", 
@@ -126,6 +128,7 @@ public class ExchangeRateController : ControllerBase
     /// </summary>
     /// <param name="currencies">Comma-separated list of currency codes (e.g., "USD,EUR,JPY")</param>
     /// <param name="targetCurrency">The target currency (defaults to "CZK")</param>
+    /// <param name="cancellationToken">Request cancellation token</param>
     /// <returns>Exchange rates for the requested currencies</returns>
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If no currencies are provided or the request is invalid</response>
@@ -141,7 +144,8 @@ public class ExchangeRateController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRatesQuery(
         [FromQuery, SwaggerParameter("Comma-separated currency codes (e.g., 'USD,EUR,JPY')", Required = true)] string currencies,
-        [FromQuery, SwaggerParameter("Target currency code (defaults to 'CZK')")] string? targetCurrency = null)
+        [FromQuery, SwaggerParameter("Target currency code (defaults to 'CZK')")] string? targetCurrency = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(currencies))
         {
@@ -167,7 +171,7 @@ public class ExchangeRateController : ControllerBase
             TargetCurrency = targetCurrency?.ToUpperInvariant()
         };
 
-        return await GetExchangeRates(request);
+        return await GetExchangeRates(request, cancellationToken);
     }
 
     /// <summary>

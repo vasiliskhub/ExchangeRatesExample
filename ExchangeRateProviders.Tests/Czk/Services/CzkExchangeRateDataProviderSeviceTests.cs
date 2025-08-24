@@ -18,7 +18,7 @@ public class CzkExchangeRateDataProviderSeviceTests
     {
         // Arrange
         var cache = new FusionCache(new FusionCacheOptions());
-        var apiClient = Substitute.For<ICzkCnbClient>();
+        var apiClient = Substitute.For<ICzkCnbApiClient>();
         var logger = Substitute.For<ILogger<CzkExchangeRateDataProviderSevice>>();
         var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, logger);
 
@@ -51,7 +51,7 @@ public class CzkExchangeRateDataProviderSeviceTests
     {
         // Arrange
         var cache = new FusionCache(new FusionCacheOptions());
-        var apiClient = Substitute.For<ICzkCnbClient>();
+        var apiClient = Substitute.For<ICzkCnbApiClient>();
         var logger = Substitute.For<ILogger<CzkExchangeRateDataProviderSevice>>();
         var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, logger);
 

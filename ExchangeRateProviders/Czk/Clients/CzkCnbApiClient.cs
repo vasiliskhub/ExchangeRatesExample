@@ -5,7 +5,7 @@ using Polly;
 
 namespace ExchangeRateProviders.Czk.Clients;
 
-public class CzkCnbApiClient : ICzkCnbClient
+public class CzkCnbApiClient : ICzkCnbApiClient
 {
 	private readonly HttpClient _httpClient;
 	private readonly ILogger<CzkCnbApiClient> _logger;

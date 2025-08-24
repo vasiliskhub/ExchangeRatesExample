@@ -14,12 +14,6 @@ namespace ExchangeRateProviders.Tests.Czk.Clients;
 [TestFixture]
 public class CzkCnbApiClientTests
 {
-    private static IAsyncPolicy<HttpResponseMessage> ZeroBackoffRetry(int retries = 3) =>
-        Policy<HttpResponseMessage>
-            .Handle<HttpRequestException>()
-            .OrResult(r => (int)r.StatusCode >= 500 || (int)r.StatusCode == 429)
-            .WaitAndRetryAsync(retries, _ => TimeSpan.Zero);
-
     [Test]
     public async Task GetDailyRatesRawAsync_ValidResponse_ReturnsRates()
     {
@@ -169,7 +163,13 @@ public class CzkCnbApiClientTests
         });
     }
 
-    private class TestHttpMessageHandler : HttpMessageHandler
+	private static IAsyncPolicy<HttpResponseMessage> ZeroBackoffRetry(int retries = 3) =>
+		Policy<HttpResponseMessage>
+			.Handle<HttpRequestException>()
+			.OrResult(r => (int)r.StatusCode >= 500 || (int)r.StatusCode == 429)
+			.WaitAndRetryAsync(retries, _ => TimeSpan.Zero);
+
+	private class TestHttpMessageHandler : HttpMessageHandler
     {
         private readonly Queue<HttpResponseMessage> _responses;
         public int CallCount { get; private set; }

@@ -80,7 +80,7 @@ app.Run();
 static void ConfigureExchangeRateServices(IServiceCollection services)
 {
 	services.AddFusionCache();
-	services.AddHttpClient<ICzkCnbClient, CzkCnbApiClient>();
+	services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
 	services.AddTransient<IExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
 	services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
 	services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();

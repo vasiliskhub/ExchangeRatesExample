@@ -20,14 +20,12 @@ public class CzkExchangeRateProviderTests
         var provider = new CzkExchangeRateProvider(dataProvider, logger);
 
         // Act
-        var result = await provider.GetExchangeRatesAsync(null!);
+        var result = await provider.GetExchangeRatesAsync(null!, CancellationToken.None);
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.Empty);
-            
-            // Verify expected log message for null currencies
             logger.VerifyLogWarning(1, "Requested currencies collection is null. Returning empty result.");
         });
     }
@@ -44,12 +42,12 @@ public class CzkExchangeRateProviderTests
             new ExchangeRate(new Currency("EUR"), new Currency("CZK"), 24.0m),
             new ExchangeRate(new Currency("JPY"), new Currency("CZK"), 0.17m)
         };
-        dataProvider.GetDailyRatesAsync().Returns(allRates);
+        dataProvider.GetDailyRatesAsync(Arg.Any<CancellationToken>()).Returns(allRates);
         var provider = new CzkExchangeRateProvider(dataProvider, logger);
         var requested = new[] { new Currency("USD"), new Currency("JPY") };
 
         // Act
-        var result = (await provider.GetExchangeRatesAsync(requested)).ToList();
+        var result = (await provider.GetExchangeRatesAsync(requested, CancellationToken.None)).ToList();
 
         // Assert
         Assert.Multiple(() =>
@@ -58,8 +56,6 @@ public class CzkExchangeRateProviderTests
             Assert.That(result.Any(r => r.SourceCurrency.Code == "USD"));
             Assert.That(result.Any(r => r.SourceCurrency.Code == "JPY"));
             Assert.That(result.All(r => r.TargetCurrency.Code == "CZK"));
-            
-            // Verify expected log messages
             logger.VerifyLogDebug(1, $"Fetching exchange rates for 2 requested currencies via provider {Constants.ExchangeRateProviderCurrencyCode}.");
             logger.VerifyLogInformation(1, $"Provider {Constants.ExchangeRateProviderCurrencyCode} returned 2/3 matching rates.");
         });

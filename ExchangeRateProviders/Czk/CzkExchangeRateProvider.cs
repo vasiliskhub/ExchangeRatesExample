@@ -17,7 +17,7 @@ public class CzkExchangeRateProvider : IExchangeRateProvider
 
     public string ExchangeRateProviderCurrencyCode => Constants.ExchangeRateProviderCurrencyCode;
 
-    public async Task<IEnumerable<ExchangeRate>> GetExchangeRatesAsync(IEnumerable<Currency> currencies)
+    public async Task<IEnumerable<ExchangeRate>> GetExchangeRatesAsync(IEnumerable<Currency> currencies, CancellationToken cancellationToken = default)
     {
         if (currencies == null)
         {
@@ -28,7 +28,7 @@ public class CzkExchangeRateProvider : IExchangeRateProvider
         var requestedCurrencies = new HashSet<string>(currencies.Select(c => c.Code), StringComparer.OrdinalIgnoreCase);
         _logger.LogDebug("Fetching exchange rates for {Count} requested currencies via provider {ProviderCurrency}.", requestedCurrencies.Count, ExchangeRateProviderCurrencyCode);
 
-        var allRates = await _dataProvider.GetDailyRatesAsync().ConfigureAwait(false);
+        var allRates = await _dataProvider.GetDailyRatesAsync(cancellationToken);
         var requestedCurrenciesRates = allRates.Where(r => requestedCurrencies.Contains(r.SourceCurrency.Code)).ToList();
 
         _logger.LogInformation("Provider {ProviderCurrency} returned {Filtered}/{Total} matching rates.", ExchangeRateProviderCurrencyCode, requestedCurrenciesRates.Count, allRates.Count());

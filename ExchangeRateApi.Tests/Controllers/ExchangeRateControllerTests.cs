@@ -21,6 +21,8 @@ public class ExchangeRateControllerTests
     private IValidator<ExchangeRateRequest> _validator = null!;
     private ExchangeRateController _controller = null!;
 
+    private static readonly CancellationToken TestToken = CancellationToken.None;
+
     [SetUp]
     public void SetUp()
     {
@@ -44,10 +46,10 @@ public class ExchangeRateControllerTests
         _validator.ValidateAsync(request, Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
         _factory.GetProvider("CZK").Returns(_provider);
-        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(rates);
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(rates);
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -69,9 +71,10 @@ public class ExchangeRateControllerTests
         var failures = new List<FluentValidation.Results.ValidationFailure>{ new("CurrencyCodes","Invalid") };
         _validator.ValidateAsync(request, Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult(failures));
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(Enumerable.Empty<ExchangeRate>());
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -89,9 +92,10 @@ public class ExchangeRateControllerTests
     {
         // Arrange
         var request = new ExchangeRateRequest { CurrencyCodes = new List<string>(), TargetCurrency = "CZK" };
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(Enumerable.Empty<ExchangeRate>());
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -111,10 +115,10 @@ public class ExchangeRateControllerTests
         _validator.ValidateAsync(request, Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
         _factory.GetProvider("CZK").Returns(_provider);
-        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(rates);
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(rates);
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -134,9 +138,10 @@ public class ExchangeRateControllerTests
         _validator.ValidateAsync(request, Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
         _factory.When(f => f.GetProvider("XXX")).Do(_ => throw new InvalidOperationException("no provider"));
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(Enumerable.Empty<ExchangeRate>());
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -155,11 +160,11 @@ public class ExchangeRateControllerTests
         _validator.ValidateAsync(request, Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
         _factory.GetProvider("CZK").Returns(_provider);
-        _provider.When(p => p.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()))
+        _provider.When(p => p.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()))
             .Do(_ => throw new Exception("boom"));
 
         // Act
-        var result = await _controller.GetExchangeRates(request);
+        var result = await _controller.GetExchangeRates(request, TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -172,18 +177,19 @@ public class ExchangeRateControllerTests
         });
     }
 
+    // GET endpoint tests
     [Test]
     public async Task GetExchangeRatesQuery_Valid_ReturnsOk()
     {
         // Arrange
         var rates = new List<ExchangeRate>{ new(new Currency("USD"), new Currency("CZK"), 22.5m)};
         _factory.GetProvider("CZK").Returns(_provider);
-        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(rates);
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(rates);
         _validator.ValidateAsync(Arg.Any<ExchangeRateRequest>(), Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
 
         // Act
-        var result = await _controller.GetExchangeRatesQuery("USD", "CZK");
+        var result = await _controller.GetExchangeRatesQuery("USD", "CZK", TestToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -198,7 +204,7 @@ public class ExchangeRateControllerTests
     public async Task GetExchangeRatesQuery_InvalidFormat_ReturnsBadRequest()
     {
         // Arrange / Act
-        var result = await _controller.GetExchangeRatesQuery("USDX,EUR", "CZK");
+        var result = await _controller.GetExchangeRatesQuery("USDX,EUR", "CZK", TestToken);
 
         // Assert
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
@@ -211,7 +217,7 @@ public class ExchangeRateControllerTests
         var codes = string.Join(',', Enumerable.Range(0,11).Select(i => $"A{i:00}".Substring(0,3)));
 
         // Act
-        var result = await _controller.GetExchangeRatesQuery("USD,EUR,JPY,AAA,BBB,CCC,DDD,EEE,FFF,GGG,HHH", "CZK");
+        var result = await _controller.GetExchangeRatesQuery("USD,EUR,JPY,AAA,BBB,CCC,DDD,EEE,FFF,GGG,HHH", "CZK", TestToken);
 
         // Assert
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
@@ -223,12 +229,12 @@ public class ExchangeRateControllerTests
         // Arrange
         var rates = new List<ExchangeRate>{ new(new Currency("USD"), new Currency("CZK"), 22.5m)};
         _factory.GetProvider("CZK").Returns(_provider);
-        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(rates);
+        _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>(), Arg.Any<CancellationToken>()).Returns(rates);
         _validator.ValidateAsync(Arg.Any<ExchangeRateRequest>(), Arg.Any<CancellationToken>())
             .Returns(new FluentValidation.Results.ValidationResult());
 
         // Act
-        var result = await _controller.GetExchangeRatesQuery("USD", null);
+        var result = await _controller.GetExchangeRatesQuery("USD", null, TestToken);
 
         // Assert
         Assert.Multiple(() =>
