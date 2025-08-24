@@ -195,8 +195,14 @@ public class ExchangeRateController : ControllerBase
                 Name = "Czech National Bank", 
                 Description = "Provides exchange rates with CZK as target currency",
                 Endpoint = "https://api.cnb.cz/cnbapi/exrates/daily"
-            }
-        };
+            },
+            new { 
+                CurrencyCode = "USD", 
+                Name = "US Dollar Provider", 
+                Description = "Provides exchange rates with USD as target currency",
+                Endpoint = "Mock Data for testing multiple providers..."
+			}
+		};
 
         return Ok(new { Providers = providers });
     }
