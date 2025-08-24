@@ -25,7 +25,7 @@ public class ExchangeRateController : ControllerBase
     /// <summary>
     /// Get exchange rates for specified currencies using JSON request
     /// </summary>
-    /// <param name="request">The exchange rate request containing currency codes and optional base currency</param>
+    /// <param name="request">The exchange rate request containing currency codes and optional target currency</param>
     /// <returns>Exchange rates for the requested currencies</returns>
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If the request is invalid or no currency codes are provided</response>
@@ -33,14 +33,14 @@ public class ExchangeRateController : ControllerBase
     [HttpPost("rates")]
     [SwaggerOperation(
         Summary = "Get exchange rates using POST request",
-        Description = "Retrieves exchange rates for specified currencies using a JSON request body. Supports multiple currencies and custom base currency.",
+        Description = "Retrieves exchange rates for specified currencies using a JSON request body. Supports multiple currencies and custom target currency.",
         OperationId = "GetExchangeRatesPost")]
     [SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))
     ]
     [SwaggerResponse(400, "Invalid request - missing or invalid currency codes")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRates(
-        [FromBody, SwaggerRequestBody("Request containing currency codes and optional base currency")] ExchangeRateRequest request)
+        [FromBody, SwaggerRequestBody("Request containing currency codes and optional target currency")] ExchangeRateRequest request)
     {
         try
         {
@@ -52,10 +52,10 @@ public class ExchangeRateController : ControllerBase
                 return BadRequest("At least one currency code must be provided");
             }
 
-            // Use provided base currency or default to CZK
+            // Use provided target currency or default to CZK
             var targetCurrency = request.TargetCurrency ?? "CZK";
             
-            // Get the exchange rate provider for the base currency
+            // Get the exchange rate provider for the target currency
             var provider = _exchangeRateProviderFactory.GetProvider(targetCurrency);
             
             // Convert currency codes to Currency objects
@@ -74,7 +74,7 @@ public class ExchangeRateController : ControllerBase
             var exchangeRates = await provider.GetExchangeRatesAsync(currencies);
             var ratesList = exchangeRates.ToList();
 
-            _logger.LogInformation("Successfully retrieved {Count} exchange rates for base currency {TargetCurrency}", 
+            _logger.LogInformation("Successfully retrieved {Count} exchange rates for target currency {TargetCurrency}", 
                 ratesList.Count, targetCurrency);
 
             // Map to response model
@@ -166,7 +166,7 @@ public class ExchangeRateController : ControllerBase
             new { 
                 CurrencyCode = "CZK", 
                 Name = "Czech National Bank", 
-                Description = "Provides exchange rates with CZK as base currency",
+                Description = "Provides exchange rates with CZK as target currency",
                 Endpoint = "https://api.cnb.cz/cnbapi/exrates/daily"
             }
         };

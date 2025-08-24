@@ -70,7 +70,7 @@ public class ExchangeRateControllerTests
 
             // Verify logging
             _logger.VerifyLogInformation(1, "Received request for exchange rates with 2 currencies");
-            _logger.VerifyLogInformation(1, "Successfully retrieved 2 exchange rates for base currency CZK");
+            _logger.VerifyLogInformation(1, "Successfully retrieved 2 exchange rates for target currency CZK");
         });
 
         // Verify provider factory was called correctly
@@ -82,7 +82,7 @@ public class ExchangeRateControllerTests
     }
 
     [Test]
-    public async Task GetExchangeRates_DefaultBaseCurrency_UsesCZK()
+    public async Task GetExchangeRates_DefaultTargetCurrency_UsesCZK()
     {
         // Arrange
         var request = new ExchangeRateRequest
@@ -325,7 +325,7 @@ public class ExchangeRateControllerTests
     {
         // Arrange
         var currenciesParam = "USD,EUR,JPY";
-        var baseCurrency = "CZK";
+        var targetCurrency = "CZK";
 
         var exchangeRates = new List<ExchangeRate>
         {
@@ -338,7 +338,7 @@ public class ExchangeRateControllerTests
         _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(exchangeRates);
 
         // Act
-        var result = await _controller.GetExchangeRatesQuery(currenciesParam, baseCurrency);
+        var result = await _controller.GetExchangeRatesQuery(currenciesParam, targetCurrency);
 
         // Assert
         Assert.Multiple(() =>
@@ -363,7 +363,7 @@ public class ExchangeRateControllerTests
     {
         // Arrange
         var currenciesParam = " USD , EUR , JPY ";
-        var baseCurrency = "CZK";
+        var targetCurrency = "CZK";
 
         var exchangeRates = new List<ExchangeRate>
         {
@@ -376,7 +376,7 @@ public class ExchangeRateControllerTests
         _provider.GetExchangeRatesAsync(Arg.Any<IEnumerable<Currency>>()).Returns(exchangeRates);
 
         // Act
-        var result = await _controller.GetExchangeRatesQuery(currenciesParam, baseCurrency);
+        var result = await _controller.GetExchangeRatesQuery(currenciesParam, targetCurrency);
 
         // Assert
         Assert.Multiple(() =>
@@ -390,7 +390,7 @@ public class ExchangeRateControllerTests
     }
 
     [Test]
-    public async Task GetExchangeRatesQuery_DefaultBaseCurrency_UsesCZK()
+    public async Task GetExchangeRatesQuery_DefaultTargetCurrency_UsesCZK()
     {
         // Arrange
         var currenciesParam = "USD";

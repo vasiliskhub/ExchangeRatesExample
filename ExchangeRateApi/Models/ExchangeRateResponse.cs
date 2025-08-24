@@ -9,7 +9,7 @@ namespace ExchangeRateApi.Models;
 public class ExchangeRateResponse
 {
     /// <summary>
-    /// The base currency used for the exchange rates
+    /// The target currency used for the exchange rates
     /// </summary>
     /// <example>CZK</example>
     [SwaggerSchema("Target currency code used for all exchange rates")]

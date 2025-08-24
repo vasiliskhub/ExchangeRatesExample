@@ -42,7 +42,7 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(result[1].SourceCurrency.Code, Is.EqualTo("EUR"));
             apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>());
             logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
-            logger.VerifyLogInformation(1, $"Mapped 2 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
+            logger.VerifyLogInformation(1, $"Mapped 2 CNB exchange rates (target currency {Constants.ExchangeRateProviderCurrencyCode}).");
         });
     }
 
@@ -75,7 +75,7 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(first.Single().Value, Is.EqualTo(0.17m));
             apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // only once
             logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
-            logger.VerifyLogInformation(1, $"Mapped 1 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
+            logger.VerifyLogInformation(1, $"Mapped 1 CNB exchange rates (target currency {Constants.ExchangeRateProviderCurrencyCode}).");
         });
     }
 }

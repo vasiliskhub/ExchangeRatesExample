@@ -6,7 +6,7 @@ namespace ExchangeRateApi.Models;
 /// <summary>
 /// Request model for getting exchange rates
 /// </summary>
-[SwaggerSchema("Request for exchange rates containing currency codes and optional base currency")]
+[SwaggerSchema("Request for exchange rates containing currency codes and optional target currency")]
 public class ExchangeRateRequest
 {
     /// <summary>
@@ -21,6 +21,6 @@ public class ExchangeRateRequest
     /// The target currency to get rates for (defaults to "CZK")
     /// </summary>
     /// <example>CZK</example>
-    [SwaggerSchema("ISO 4217 base currency code (defaults to CZK if not specified)")]
+    [SwaggerSchema("ISO 4217 target currency code (defaults to CZK if not specified)")]
     public string? TargetCurrency { get; set; }
 }
