@@ -18,9 +18,9 @@ public class ExchangeRateRequest
     public List<string> CurrencyCodes { get; set; } = new();
 
     /// <summary>
-    /// The base currency to get rates for (defaults to "CZK")
+    /// The target currency to get rates for (defaults to "CZK")
     /// </summary>
     /// <example>CZK</example>
     [SwaggerSchema("ISO 4217 base currency code (defaults to CZK if not specified)")]
-    public string? BaseCurrency { get; set; }
+    public string? TargetCurrency { get; set; }
 }

@@ -12,8 +12,8 @@ public class ExchangeRateResponse
     /// The base currency used for the exchange rates
     /// </summary>
     /// <example>CZK</example>
-    [SwaggerSchema("Base currency code used for all exchange rates")]
-    public string BaseCurrency { get; set; } = string.Empty;
+    [SwaggerSchema("Target currency code used for all exchange rates")]
+    public string TargetCurrency { get; set; } = string.Empty;
 
     /// <summary>
     /// List of exchange rates

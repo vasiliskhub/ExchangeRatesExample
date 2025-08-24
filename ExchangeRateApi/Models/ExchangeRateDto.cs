@@ -13,14 +13,14 @@ public class ExchangeRateDto
     /// </summary>
     /// <example>USD</example>
     [SwaggerSchema("Source currency ISO 4217 code")]
-    public string FromCurrency { get; set; } = string.Empty;
+    public string SourceCurrency { get; set; } = string.Empty;
 
     /// <summary>
     /// Target currency code (e.g., "CZK")
     /// </summary>
     /// <example>CZK</example>
     [SwaggerSchema("Target currency ISO 4217 code")]
-    public string ToCurrency { get; set; } = string.Empty;
+    public string TargetCurrency { get; set; } = string.Empty;
 
     /// <summary>
     /// Exchange rate value
@@ -34,5 +34,5 @@ public class ExchangeRateDto
     /// </summary>
     /// <example>USD/CZK=22.5000</example>
     [SwaggerSchema("Human-readable representation of the exchange rate")]
-    public string DisplayValue => $"{FromCurrency}/{ToCurrency}={Rate:F4}";
+    public string DisplayValue => $"{SourceCurrency}/{TargetCurrency}={Rate:F4}";
 }

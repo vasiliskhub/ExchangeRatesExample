@@ -53,10 +53,10 @@ public class ExchangeRateController : ControllerBase
             }
 
             // Use provided base currency or default to CZK
-            var baseCurrency = request.BaseCurrency ?? "CZK";
+            var targetCurrency = request.TargetCurrency ?? "CZK";
             
             // Get the exchange rate provider for the base currency
-            var provider = _exchangeRateProviderFactory.GetProvider(baseCurrency);
+            var provider = _exchangeRateProviderFactory.GetProvider(targetCurrency);
             
             // Convert currency codes to Currency objects
             var currencies = request.CurrencyCodes
@@ -74,17 +74,17 @@ public class ExchangeRateController : ControllerBase
             var exchangeRates = await provider.GetExchangeRatesAsync(currencies);
             var ratesList = exchangeRates.ToList();
 
-            _logger.LogInformation("Successfully retrieved {Count} exchange rates for base currency {BaseCurrency}", 
-                ratesList.Count, baseCurrency);
+            _logger.LogInformation("Successfully retrieved {Count} exchange rates for base currency {TargetCurrency}", 
+                ratesList.Count, targetCurrency);
 
             // Map to response model
             var response = new ExchangeRateResponse
             {
-                BaseCurrency = baseCurrency,
+                TargetCurrency = targetCurrency,
                 Rates = ratesList.Select(rate => new ExchangeRateDto
                 {
-                    FromCurrency = rate.SourceCurrency.Code,
-                    ToCurrency = rate.TargetCurrency.Code,
+                    SourceCurrency = rate.SourceCurrency.Code,
+                    TargetCurrency = rate.TargetCurrency.Code,
                     Rate = rate.Value
                 }).ToList(),
                 RetrievedAt = DateTime.UtcNow
@@ -108,7 +108,7 @@ public class ExchangeRateController : ControllerBase
     /// Get exchange rates for specified currencies using query parameters
     /// </summary>
     /// <param name="currencies">Comma-separated list of currency codes (e.g., "USD,EUR,JPY")</param>
-    /// <param name="baseCurrency">The base currency (defaults to "CZK")</param>
+    /// <param name="targetCurrency">The target currency (defaults to "CZK")</param>
     /// <returns>Exchange rates for the requested currencies</returns>
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If no currencies are provided or the request is invalid</response>
@@ -124,7 +124,7 @@ public class ExchangeRateController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRatesQuery(
         [FromQuery, SwaggerParameter("Comma-separated currency codes (e.g., 'USD,EUR,JPY')", Required = true)] string currencies,
-        [FromQuery, SwaggerParameter("Base currency code (defaults to 'CZK')")] string? baseCurrency = null)
+        [FromQuery, SwaggerParameter("Target currency code (defaults to 'CZK')")] string? targetCurrency = null)
     {
         if (string.IsNullOrWhiteSpace(currencies))
         {
@@ -140,7 +140,7 @@ public class ExchangeRateController : ControllerBase
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = currencyCodes,
-            BaseCurrency = baseCurrency
+            TargetCurrency = targetCurrency
         };
 
         return await GetExchangeRates(request);

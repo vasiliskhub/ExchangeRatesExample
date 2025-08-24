@@ -33,7 +33,7 @@ namespace ExchangeRateProviders.Czk.Services
 				_logger.LogInformation("Cache miss for CNB daily rates. Fetching and mapping.");
 				var raw = await _apiClient.GetDailyRatesRawAsync().ConfigureAwait(false);
 				var mapped = raw.MapToExchangeRates();
-				_logger.LogInformation("Mapped {Count} CNB exchange rates (base {BaseCurrency}).", mapped.Count(), Constants.ExchangeRateProviderCurrencyCode);
+				_logger.LogInformation("Mapped {Count} CNB exchange rates (target currency {TargetCurrency}).", mapped.Count(), Constants.ExchangeRateProviderCurrencyCode);
 				return (IEnumerable<ExchangeRate>)mapped;
 			}, new FusionCacheEntryOptions { Duration = CacheDuration });
 		}

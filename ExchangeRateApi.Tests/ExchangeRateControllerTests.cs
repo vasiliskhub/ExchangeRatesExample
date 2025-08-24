@@ -37,7 +37,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "USD", "EUR" },
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         var exchangeRates = new List<ExchangeRate>
@@ -59,13 +59,13 @@ public class ExchangeRateControllerTests
             var okResult = (OkObjectResult)result.Result!;
             var response = (ExchangeRateResponse)okResult.Value!;
             
-            Assert.That(response.BaseCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
             Assert.That(response.Rates, Has.Count.EqualTo(2));
-            Assert.That(response.Rates[0].FromCurrency, Is.EqualTo("USD"));
-            Assert.That(response.Rates[0].ToCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.Rates[0].SourceCurrency, Is.EqualTo("USD"));
+            Assert.That(response.Rates[0].TargetCurrency, Is.EqualTo("CZK"));
             Assert.That(response.Rates[0].Rate, Is.EqualTo(22.50m));
-            Assert.That(response.Rates[1].FromCurrency, Is.EqualTo("EUR"));
-            Assert.That(response.Rates[1].ToCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.Rates[1].SourceCurrency, Is.EqualTo("EUR"));
+            Assert.That(response.Rates[1].TargetCurrency, Is.EqualTo("CZK"));
             Assert.That(response.Rates[1].Rate, Is.EqualTo(24.00m));
 
             // Verify logging
@@ -88,7 +88,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "USD" },
-            BaseCurrency = null // Should default to CZK
+            TargetCurrency = null // Should default to CZK
         };
 
         var exchangeRates = new List<ExchangeRate>
@@ -108,7 +108,7 @@ public class ExchangeRateControllerTests
             Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
             var okResult = (OkObjectResult)result.Result!;
             var response = (ExchangeRateResponse)okResult.Value!;
-            Assert.That(response.BaseCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
 			_exchangeRateProviderFactory.Received(1).GetProvider("CZK");
 		});
 
@@ -122,7 +122,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = null!,
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         // Act
@@ -151,7 +151,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string>(),
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         // Act
@@ -176,7 +176,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { " ", "", "   " },
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         _exchangeRateProviderFactory.GetProvider("CZK").Returns(_provider);
@@ -203,7 +203,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "USD", "", "   ", "EUR", null! },
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         var exchangeRates = new List<ExchangeRate>
@@ -239,7 +239,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "usd", "eur" },
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         var exchangeRates = new List<ExchangeRate>
@@ -266,7 +266,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "USD" },
-            BaseCurrency = "INVALID"
+            TargetCurrency = "INVALID"
         };
 
         var exception = new InvalidOperationException("No provider for currency INVALID");
@@ -294,7 +294,7 @@ public class ExchangeRateControllerTests
         var request = new ExchangeRateRequest
         {
             CurrencyCodes = new List<string> { "USD" },
-            BaseCurrency = "CZK"
+            TargetCurrency = "CZK"
         };
 
         var exception = new Exception("Unexpected error");
@@ -347,7 +347,7 @@ public class ExchangeRateControllerTests
             var okResult = (OkObjectResult)result.Result!;
             var response = (ExchangeRateResponse)okResult.Value!;
             
-            Assert.That(response.BaseCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
             Assert.That(response.Rates, Has.Count.EqualTo(3));
         });
 
@@ -413,7 +413,7 @@ public class ExchangeRateControllerTests
             var okResult = (OkObjectResult)result.Result!;
             var response = (ExchangeRateResponse)okResult.Value!;
             
-            Assert.That(response.BaseCurrency, Is.EqualTo("CZK"));
+            Assert.That(response.TargetCurrency, Is.EqualTo("CZK"));
         });
 
         _exchangeRateProviderFactory.Received(1).GetProvider("CZK");
