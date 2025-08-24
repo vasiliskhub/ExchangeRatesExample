@@ -105,7 +105,8 @@ public class ExchangeRateController : ControllerBase
                 {
                     SourceCurrency = rate.SourceCurrency.Code,
                     TargetCurrency = rate.TargetCurrency.Code,
-                    Rate = rate.Value
+                    Rate = rate.Value,
+                    ValidFor = rate.ValidFor
                 }).ToList()
             };
 

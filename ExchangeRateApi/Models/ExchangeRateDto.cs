@@ -30,6 +30,13 @@ public class ExchangeRateDto
     public decimal Rate { get; set; }
 
     /// <summary>
+    /// Date the rate is valid for (UTC) if supplied by upstream provider
+    /// </summary>
+    /// <example>2025-01-02T00:00:00Z</example>
+    [SwaggerSchema("Date (UTC) the upstream provider states the rate is valid for; null if not provided")]
+    public DateTime? ValidFor { get; set; }
+
+    /// <summary>
     /// String representation of the exchange rate
     /// </summary>
     /// <example>USD/CZK=22.5000</example>

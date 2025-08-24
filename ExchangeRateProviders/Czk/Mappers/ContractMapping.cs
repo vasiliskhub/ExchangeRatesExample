@@ -21,7 +21,7 @@ public static class ContractMapping
 		var targetCurrency = new Currency(Constants.ExchangeRateProviderCurrencyCode);
 		var perUnitRate = dto.Rate / dto.Amount;
 
-		return new ExchangeRate(sourceCurrency, targetCurrency, perUnitRate);
+		return new ExchangeRate(sourceCurrency, targetCurrency, perUnitRate, dto.ValidFor);
 	}
 
 	public static IEnumerable<ExchangeRate> MapToExchangeRates(this IEnumerable<CnbApiExchangeRateDto> sourceRates)
