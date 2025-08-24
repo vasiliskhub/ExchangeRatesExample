@@ -1,8 +1,6 @@
-using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Services;
 using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Model;
 using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
@@ -21,23 +19,17 @@ public class CzkExchangeRateDataProviderSeviceTests
         // Arrange
         var cache = new FusionCache(new FusionCacheOptions());
         var apiClient = Substitute.For<ICzkCnbClient>();
-        var mapper = Substitute.For<ICzkExchangeRatesMapper>();
         var logger = Substitute.For<ILogger<CzkExchangeRateDataProviderSevice>>();
-        var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, mapper, logger);
+        var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, logger);
 
         var raw = new List<CnbApiExchangeRateDto>
         {
             new() { CurrencyCode = "USD", Amount = 1, Rate = 22.50m, ValidFor = DateTime.UtcNow },
             new() { CurrencyCode = "EUR", Amount = 1, Rate = 24.00m, ValidFor = DateTime.UtcNow }
         };
-        var mapped = new List<ExchangeRate>
-        {
-            new(new Currency("USD"), new Currency("CZK"), 22.50m),
-            new(new Currency("EUR"), new Currency("CZK"), 24.00m)
-        };
 
-        apiClient.GetDailyRatesRawAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<CnbApiExchangeRateDto>>(raw));
-        mapper.MapToExchangeRates(Arg.Is<IEnumerable<CnbApiExchangeRateDto>>(r => ReferenceEquals(r, raw))).Returns(mapped);
+        apiClient.GetDailyRatesRawAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<CnbApiExchangeRateDto>>(raw));
 
         // Act
         var result = (await service.GetDailyRatesAsync()).ToList();
@@ -49,9 +41,6 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(result[0].SourceCurrency.Code, Is.EqualTo("USD"));
             Assert.That(result[1].SourceCurrency.Code, Is.EqualTo("EUR"));
             apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>());
-            mapper.Received(1).MapToExchangeRates(Arg.Any<IEnumerable<CnbApiExchangeRateDto>>());
-            
-            // Verify expected log messages
             logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
             logger.VerifyLogInformation(1, $"Mapped 2 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
         });
@@ -63,21 +52,16 @@ public class CzkExchangeRateDataProviderSeviceTests
         // Arrange
         var cache = new FusionCache(new FusionCacheOptions());
         var apiClient = Substitute.For<ICzkCnbClient>();
-        var mapper = Substitute.For<ICzkExchangeRatesMapper>();
         var logger = Substitute.For<ILogger<CzkExchangeRateDataProviderSevice>>();
-        var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, mapper, logger);
+        var service = new CzkExchangeRateDataProviderSevice(cache, apiClient, logger);
 
         var raw = new List<CnbApiExchangeRateDto>
         {
             new() { CurrencyCode = "JPY", Amount = 100, Rate = 17.00m, ValidFor = DateTime.UtcNow }
         };
-        var mapped = new List<ExchangeRate>
-        {
-            new(new Currency("JPY"), new Currency("CZK"), 0.17m)
-        };
 
-        apiClient.GetDailyRatesRawAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<CnbApiExchangeRateDto>>(raw));
-        mapper.MapToExchangeRates(Arg.Any<IEnumerable<CnbApiExchangeRateDto>>()).Returns(mapped);
+        apiClient.GetDailyRatesRawAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<CnbApiExchangeRateDto>>(raw));
 
         // Act
         var first = (await service.GetDailyRatesAsync()).ToList();
@@ -87,10 +71,9 @@ public class CzkExchangeRateDataProviderSeviceTests
         Assert.Multiple(() =>
         {
             Assert.That(first, Is.EqualTo(second)); // same cached content
-            apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // factory executed only once
-            mapper.Received(1).MapToExchangeRates(Arg.Any<IEnumerable<CnbApiExchangeRateDto>>());
-            
-            // Verify log messages - should only log once since subsequent call uses cache
+            Assert.That(first.Single().SourceCurrency.Code, Is.EqualTo("JPY"));
+            Assert.That(first.Single().Value, Is.EqualTo(0.17m));
+            apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // only once
             logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
             logger.VerifyLogInformation(1, $"Mapped 1 CNB exchange rates (base {Constants.ExchangeRateProviderCurrencyCode}).");
         });

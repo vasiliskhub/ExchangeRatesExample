@@ -3,7 +3,6 @@ using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -51,7 +50,6 @@ static void ConfigureServices(IServiceCollection services)
 {
     services.AddFusionCache();
     services.AddHttpClient<ICzkCnbClient, CzkCnbApiClient>();
-    services.AddSingleton<ICzkExchangeRatesMapper, CzkExchangeRateMapper>();
     services.AddTransient<IExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
     services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
     services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();

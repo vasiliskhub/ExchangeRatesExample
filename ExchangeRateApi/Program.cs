@@ -2,7 +2,6 @@ using ExchangeRateProviders;
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Services;
 using Microsoft.OpenApi.Models;
 
@@ -77,7 +76,6 @@ static void ConfigureExchangeRateServices(IServiceCollection services)
 {
 	services.AddFusionCache();
 	services.AddHttpClient<ICzkCnbClient, CzkCnbApiClient>();
-	services.AddSingleton<ICzkExchangeRatesMapper, CzkExchangeRateMapper>();
 	services.AddTransient<IExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
 	services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
 	services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();
