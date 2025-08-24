@@ -36,7 +36,7 @@ public class ExchangeRateController : ControllerBase
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If the request is invalid or no currency codes are provided</response>
     /// <response code="500">If there was an internal server error</response>
-    [HttpPost(ApiEndpoints.ExchangeRates.RatesPost)]
+    [HttpPost(ApiEndpoints.ExchangeRates.GetAllByRequestBody)]
     [SwaggerOperation(
         Summary = "Get exchange rates using POST request",
         Description = "Retrieves exchange rates for specified currencies using a JSON request body. Supports multiple currencies and custom target currency.",
@@ -130,7 +130,7 @@ public class ExchangeRateController : ControllerBase
     /// <response code="200">Returns the exchange rates for the requested currencies</response>
     /// <response code="400">If no currencies are provided or the request is invalid</response>
     /// <response code="500">If there was an internal server error</response>
-    [HttpGet(ApiEndpoints.ExchangeRates.RatesGet)]
+    [HttpGet(ApiEndpoints.ExchangeRates.GetAllByQueryParams)]
     [SwaggerOperation(
         Summary = "Get exchange rates using GET request",
         Description = "Retrieves exchange rates for specified currencies using query parameters. Convenient for simple requests.",
@@ -175,7 +175,7 @@ public class ExchangeRateController : ControllerBase
     /// </summary>
     /// <returns>List of available currency providers</returns>
     /// <response code="200">Returns the list of available providers</response>
-    [HttpGet(ApiEndpoints.ExchangeRates.Providers)]
+    [HttpGet(ApiEndpoints.Providers.GetAll)]
     [SwaggerOperation(
         Summary = "Get available exchange rate providers",
         Description = "Returns information about all available exchange rate providers and their supported currencies.",

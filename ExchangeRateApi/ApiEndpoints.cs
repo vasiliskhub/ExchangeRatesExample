@@ -8,8 +8,13 @@ public static class ApiEndpoints
 	public static class ExchangeRates
 	{
 		public const string Base = $"{ApiBase}/exchange-rates";
-		public const string RatesPost = $"{Base}/rates"; // POST
-		public const string RatesGet = $"{Base}/rates";  // GET (query version)
-		public const string Providers = $"{Base}/providers"; // GET providers
+		public const string GetAllByRequestBody = $"{Base}/rates";
+		public const string GetAllByQueryParams = $"{Base}/rates"; 
+	}
+
+	public static class Providers
+	{
+		public const string Base = $"{ApiBase}/providers";
+		public const string GetAll= $"{Base}";
 	}
 }
