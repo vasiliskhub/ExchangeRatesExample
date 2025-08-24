@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   exchangerate-api:
-    build:
-      context: .
-      dockerfile: ExchangeRateApi/Dockerfile
+    image: vasiliskhub/exchange-rate-api:latest   # << use the image you push in CI
+    pull_policy: always                            # always fetch the newest digest
     container_name: exchangerate-api
     environment:
       ASPNETCORE_ENVIRONMENT: Production
