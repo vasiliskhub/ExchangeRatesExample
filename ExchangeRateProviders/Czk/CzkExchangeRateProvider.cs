@@ -1,5 +1,6 @@
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
+using ExchangeRateProviders.Czk.Config;
 using Microsoft.Extensions.Logging;
 
 namespace ExchangeRateProviders.Czk;

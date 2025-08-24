@@ -1,4 +1,4 @@
-﻿using ExchangeRateProviders.Czk;
+﻿using ExchangeRateProviders.Czk.Config;
 using ExchangeRateProviders.Czk.Mappers;
 using ExchangeRateProviders.Czk.Model;
 using NUnit.Framework;

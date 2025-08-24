@@ -2,6 +2,7 @@ using ExchangeRateProviders.Czk.Model;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using Polly;
+using ExchangeRateProviders.Czk.Config;
 
 namespace ExchangeRateProviders.Czk.Clients;
 

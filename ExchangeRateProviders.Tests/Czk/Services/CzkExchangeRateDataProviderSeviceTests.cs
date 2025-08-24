@@ -1,4 +1,3 @@
-using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Services;
 using ExchangeRateProviders.Czk.Clients;
 using ExchangeRateProviders.Czk.Model;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 using ZiggyCreatures.Caching.Fusion;
+using ExchangeRateProviders.Czk.Config;
 
 namespace ExchangeRateProviders.Tests.Czk.Services;
 
@@ -73,7 +73,7 @@ public class CzkExchangeRateDataProviderSeviceTests
             Assert.That(first, Is.EqualTo(second)); // same cached content
             Assert.That(first.Single().SourceCurrency.Code, Is.EqualTo("JPY"));
             Assert.That(first.Single().Value, Is.EqualTo(0.17m));
-            apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // only once
+            apiClient.Received(1).GetDailyRatesRawAsync(Arg.Any<CancellationToken>()); // only once due to caching
             logger.VerifyLogInformation(1, "Cache miss for CNB daily rates. Fetching and mapping.");
             logger.VerifyLogInformation(1, $"Mapped 1 CNB exchange rates (target currency {Constants.ExchangeRateProviderCurrencyCode}).");
         });

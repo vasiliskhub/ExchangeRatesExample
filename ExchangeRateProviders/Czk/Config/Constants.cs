@@ -1,4 +1,4 @@
-﻿namespace ExchangeRateProviders.Czk
+﻿namespace ExchangeRateProviders.Czk.Config
 {
 	public static class Constants
 	{

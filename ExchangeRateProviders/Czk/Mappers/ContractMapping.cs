@@ -1,4 +1,5 @@
 using ExchangeRateProviders.Core.Model;
+using ExchangeRateProviders.Czk.Config;
 using ExchangeRateProviders.Czk.Model;
 
 namespace ExchangeRateProviders.Czk.Mappers;

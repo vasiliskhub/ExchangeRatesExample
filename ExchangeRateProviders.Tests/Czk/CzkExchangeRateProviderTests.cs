@@ -1,6 +1,7 @@
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
+using ExchangeRateProviders.Czk.Config;
 using ExchangeRateProviders.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

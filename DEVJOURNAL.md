@@ -59,7 +59,8 @@ This could be potentially critical. On one hand I wouldnt like the idea of reque
 
 But... what does "after 2:30 pm" means,when excactly, after 2:30 can be 3,4,6pm?
 
-Initially I will creating a simple caching strategy to have fresh data every 5 minutes assuming it is 
-an acceptable window. FusionCache can handle more complicated caching scenarios and it is possible to create a smarter calendar based one if needed.
+I will make the assumption that the data are available sometime between 2:31pm-3:31pm Prague Time and refresh cache every 5 minutes starting
+at 2:31pm until 3:31 pm. After that I will assume the data are stable and refresh cache every hour. I will reduce to 6 hours on weekends and ignore holidays for siplicity.
+
 
 - Unsupported currencies: If a requested currency is not present in the CNB publication, it is silently ignored (not returned as an error).
