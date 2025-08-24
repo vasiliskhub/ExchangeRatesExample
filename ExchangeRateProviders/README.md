@@ -74,6 +74,6 @@ All public async APIs accept a `CancellationToken`. Propagate tokens from HTTP e
 ## Notes
 
 - Library targets .NET 9.
-- Uses FusionCache for potential caching (registration shown; actual caching strategy can be extended for smarter caching or persistent cache based on further requirements).
+- Uses FusionCache for caching. Caching strategy can be customized per provider. Uses in-memory caching by default but can be extended to distributed caches.
 - Designed to be extended with additional providers (e.g., ECB, Fed, custom market feeds) without modifying existing provider code.
 
