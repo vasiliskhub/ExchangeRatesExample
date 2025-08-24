@@ -59,11 +59,10 @@ The Swagger UI provides:
 
 ## Configuration & Extensibility
 - Logging: Console provider added by default; extend via `appsettings.json` or additional logging providers.
-- Caching: FusionCache registered (ready for adding decorators / distributed cache later).
+- Caching: FusionCache with in-memory caching and custom strategy implemented according to Providers(CNB, ECB etc) update schedule.
 - Validation: Add new validators implementing `IValidator<T>` and register in DI.
 
 ## Future Enhancements
 - Additional provider implementations (ECB, USD base, etc.).
 - Fallback rates sources (csv,text,xml) in case of bank api downtime.
-- Smart caching (calendar based) / persistent caching.
-- Health checks (`/healthz`).
+- Health checks (`/healthz`)
