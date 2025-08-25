@@ -5,9 +5,7 @@ using ExchangeRateProviders;
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Czk.Services;
 using ExchangeRateProviders.Usd;
-using ExchangeRateProviders.Usd.Services;
 using FluentValidation;
 using Microsoft.OpenApi.Models;
 
@@ -83,17 +81,14 @@ static void ConfigureExchangeRateServices(IServiceCollection services)
 {
 	services.AddFusionCache();
 
-	// CZK Provider dependencies
-	services.AddSingleton<ICzkExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
+	//Register HtpClients for API clients
 	services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
 
-	// USD Provider dependencies
-	services.AddSingleton<IUsdExchangeRateDataProvider, UsdExchangeRateDataProviderService>();
+	//Register exchange rate providers and factory
+	services.AddSingleton<IExchangeRateDataProvider, CzkExchangeRateDataProvider>();
+	services.AddSingleton<IExchangeRateDataProvider, UsdExchangeRateDataProvider>();
+	services.AddSingleton<IExchangeRateDataProviderFactory, ExchangeRateDataProviderFactory>();
 
-	// Register both providers
-	services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
-	services.AddSingleton<IExchangeRateProvider, UsdExchangeRateProvider>();
-
-	// Factory to resolve providers
-	services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();
+	//Register the exchange rate service
+	services.AddSingleton<IExchangeRateService, ExchangeRateService>();
 }

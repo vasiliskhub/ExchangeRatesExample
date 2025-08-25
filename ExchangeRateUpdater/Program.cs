@@ -3,14 +3,11 @@ using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
 using ExchangeRateProviders.Czk;
 using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Czk.Services;
 using ExchangeRateProviders.Usd;
-using ExchangeRateProviders.Usd.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-const string ExchangeRateUsdProviderCurrencyCode = "USD";
-const string ExchangeRateCzkProviderCurrencyCode = "CZK";
+const string ExchangeRateProviderTargetCurrencyCode = "CZK";
 
 var currencies = new List<Currency>
 {
@@ -32,27 +29,21 @@ using var host = builder.Build();
 
 try
 {
-    var factory = host.Services.GetRequiredService<IExchangeRateProviderFactory>();
+    var exchangeRateService = host.Services.GetRequiredService<IExchangeRateService>();
+    var czkrates = await exchangeRateService.GetExchangeRatesAsync(ExchangeRateProviderTargetCurrencyCode, currencies, CancellationToken.None);
 
-    Console.WriteLine("=== CZK Provider (rates TO CZK) ===");
-    var czkProvider = factory.GetProvider(ExchangeRateCzkProviderCurrencyCode);
-    var ratesCzk = await czkProvider.GetExchangeRatesAsync(currencies, CancellationToken.None);
-
-    Console.WriteLine($"Successfully retrieved {ratesCzk.Count()} CZK exchange rates:");
-    foreach (var rate in ratesCzk)
+	Console.WriteLine($"Successfully retrieved {czkrates.Count()} exchange rates:");
+    foreach (var rate in czkrates)
     {
         Console.WriteLine(rate.ToString());
     }
 
-    Console.WriteLine("\n=== USD Provider (rates TO USD) ===");
-    var usdProvider = factory.GetProvider(ExchangeRateUsdProviderCurrencyCode);
-    var ratesUsd = await usdProvider.GetExchangeRatesAsync(currencies, CancellationToken.None);
-
-    Console.WriteLine($"Successfully retrieved {ratesUsd.Count()} USD exchange rates:");
-    foreach (var rate in ratesUsd)
-    {
-        Console.WriteLine(rate.ToString());
-    }
+    var usdrates = await exchangeRateService.GetExchangeRatesAsync("USD", currencies, CancellationToken.None);
+	Console.WriteLine($"Successfully retrieved {czkrates.Count()} exchange rates:");
+	foreach (var rate in usdrates)
+	{
+		Console.WriteLine(rate.ToString());
+	}
 }
 catch (Exception e)
 {
@@ -63,20 +54,16 @@ return;
 
 static void ConfigureServices(IServiceCollection services)
 {
-    // FusionCache for CZK provider
     services.AddFusionCache();
-    
-    // CZK Provider dependencies
-    services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
-    services.AddSingleton<ICzkExchangeRateDataProvider, CzkExchangeRateDataProviderSevice>();
 
-	// USD Provider dependencies
-	services.AddSingleton<IUsdExchangeRateDataProvider, UsdExchangeRateDataProviderService>();
+	//Register HtpClients for API clients
+	services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
 
-	// Register both providers
-	services.AddSingleton<IExchangeRateProvider, CzkExchangeRateProvider>();
-    services.AddSingleton<IExchangeRateProvider, UsdExchangeRateProvider>();
-    
-    // Factory to resolve providers
-    services.AddSingleton<IExchangeRateProviderFactory, ExchangeRateProviderFactory>();
+	//Register exchange rate providers and factory
+	services.AddSingleton<IExchangeRateDataProvider, CzkExchangeRateDataProvider>();
+	services.AddSingleton<IExchangeRateDataProvider, UsdExchangeRateDataProvider>();
+	services.AddSingleton<IExchangeRateDataProviderFactory, ExchangeRateDataProviderFactory>();
+
+	//Register the exchange rate service
+	services.AddSingleton<IExchangeRateService, ExchangeRateService>();
 }
