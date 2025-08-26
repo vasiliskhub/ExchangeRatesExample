@@ -2,10 +2,6 @@ using ExchangeRateApi;
 using ExchangeRateApi.Models;
 using ExchangeRateApi.Models.Validators;
 using ExchangeRateProviders;
-using ExchangeRateProviders.Core;
-using ExchangeRateProviders.Czk;
-using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Usd;
 using FluentValidation;
 using Microsoft.OpenApi.Models;
 
@@ -49,8 +45,8 @@ builder.Services.AddSwaggerGen(c =>
 // Add logging
 builder.Logging.AddConsole();
 
-// Add Exchange Rate Provider services
-ConfigureExchangeRateServices(builder.Services);
+// Register Exchange Rate Provider services via extension
+builder.Services.AddExchangeRateProviders();
 
 var app = builder.Build();
 
@@ -79,19 +75,3 @@ logger.LogInformation("Exchange Rate API started successfully");
 logger.LogInformation("Swagger UI available at: /swagger");
 
 app.Run();
-
-static void ConfigureExchangeRateServices(IServiceCollection services)
-{
-	services.AddFusionCache();
-
-	//Register HtpClients for API clients
-	services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
-
-	//Register exchange rate providers and factory
-	services.AddSingleton<IExchangeRateDataProvider, CzkExchangeRateDataProvider>();
-	services.AddSingleton<IExchangeRateDataProvider, UsdExchangeRateDataProvider>();
-	services.AddSingleton<IExchangeRateDataProviderFactory, ExchangeRateDataProviderFactory>();
-
-	//Register the exchange rate service
-	services.AddSingleton<IExchangeRateService, ExchangeRateService>();
-}

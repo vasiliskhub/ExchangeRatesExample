@@ -25,7 +25,7 @@ public class ExchangeRateService : IExchangeRateService
 
         var requestedCurrencies = new HashSet<string>(currencies.Select(c => c.Code), StringComparer.OrdinalIgnoreCase);
 
-        CurrencyValidator.ValidateCurrencyCodes(currencies);
+		CurrencyValidator.ValidateCurrencyCodes(currencies);
 
 		_logger.LogDebug("Fetching exchange rates for {Count} requested currencies via provider {ProviderCurrency}.", requestedCurrencies.Count, TargetCurrency);
 

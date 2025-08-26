@@ -1,9 +1,6 @@
 ﻿using ExchangeRateProviders;
 using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
-using ExchangeRateProviders.Czk;
-using ExchangeRateProviders.Czk.Clients;
-using ExchangeRateProviders.Usd;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -53,16 +50,5 @@ return;
 
 static void ConfigureServices(IServiceCollection services)
 {
-    services.AddFusionCache();
-
-	//Register HtpClients for API clients
-	services.AddHttpClient<ICzkCnbApiClient, CzkCnbApiClient>();
-
-	//Register exchange rate providers and factory
-	services.AddSingleton<IExchangeRateDataProvider, CzkExchangeRateDataProvider>();
-	services.AddSingleton<IExchangeRateDataProvider, UsdExchangeRateDataProvider>();
-	services.AddSingleton<IExchangeRateDataProviderFactory, ExchangeRateDataProviderFactory>();
-
-	//Register the exchange rate service
-	services.AddSingleton<IExchangeRateService, ExchangeRateService>();
+    services.AddExchangeRateProviders();
 }
