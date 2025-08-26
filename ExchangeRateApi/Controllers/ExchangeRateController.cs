@@ -1,11 +1,11 @@
 using ExchangeRateApi.Models;
+using ExchangeRateProviders.Core;
 using ExchangeRateProviders.Core.Model;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Text.RegularExpressions;
-using FluentValidation;
-using FluentValidation.Results;
-using ExchangeRateProviders.Core;
 
 namespace ExchangeRateApi.Controllers;
 
@@ -17,8 +17,9 @@ public class ExchangeRateController : ControllerBase
     private readonly ILogger<ExchangeRateController> _logger;
     private readonly IValidator<ExchangeRateRequest>? _requestValidator;
     private static readonly Regex QueryCodesRegex = new("^[A-Za-z]{3}(?:,[A-Za-z]{3})*$", RegexOptions.Compiled);
+    private const string DefaultTargetCurrency = "CZK";
 
-    public ExchangeRateController(
+	public ExchangeRateController(
 		IExchangeRateService exchangeRateService, 
         ILogger<ExchangeRateController> logger,
         IValidator<ExchangeRateRequest>? requestValidator = null)
@@ -46,92 +47,67 @@ public class ExchangeRateController : ControllerBase
     ]
     [SwaggerResponse(400, "Invalid request - missing or invalid currency codes")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRates(
-        [FromBody, SwaggerRequestBody("Request containing currency codes and optional target currency")] ExchangeRateRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Received request for exchange rates with {Count} currencies", request.CurrencyCodes.Count);
+	public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRates(
+	[FromBody] ExchangeRateRequest request,
+	CancellationToken cancellationToken = default)
+	{
+		_logger.LogInformation("Received request for exchange rates with {Count} currencies", request.CurrencyCodes.Count);
 
-            if (request.CurrencyCodes == null || !request.CurrencyCodes.Any())
-            {
-                _logger.LogWarning("Exchange rate request received with empty currency codes");
-                return BadRequest("At least one currency code must be provided");
-            }
+		if (request.CurrencyCodes == null || !request.CurrencyCodes.Any())
+		{
+			_logger.LogWarning("Exchange rate request received with empty currency codes");
+			throw new ArgumentException("At least one currency code must be provided");
+		}
 
-            // Validate request using FluentValidation if validator is configured
-            if (_requestValidator != null)
-            {
-                ValidationResult validationResult = await _requestValidator.ValidateAsync(request, cancellationToken);
-                if (!validationResult.IsValid)
-                {
-                    var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
-                    _logger.LogWarning("Validation failed for request: {Errors}", string.Join(", ", errors));
-                    return BadRequest(errors);
-                }
-            }
+		if (_requestValidator != null)
+		{
+			ValidationResult validationResult = await _requestValidator.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+				_logger.LogWarning("Validation failed for request: {Errors}", string.Join(", ", errors));
+				throw new ArgumentException(string.Join("; ", errors));
+			}
+		}
 
-            // Use provided target currency or default to CZK
-            var targetCurrency = request.TargetCurrency ?? "CZK";
-            
-            // Convert currency codes to Currency objects
-            var currencies = request.CurrencyCodes
-                .Where(code => !string.IsNullOrWhiteSpace(code))
-                .Select(code => new Currency(code.ToUpperInvariant()))
-                .ToList();
+		var currencies = request.CurrencyCodes
+		.Where(code => !string.IsNullOrWhiteSpace(code))
+		.Select(code => new Currency(code.ToUpperInvariant()))
+		.ToList();
 
-            if (!currencies.Any())
-            {
-                _logger.LogWarning("No valid currency codes provided after filtering");
-                return BadRequest("No valid currency codes provided");
-            }
+        var targetCurrency = request.TargetCurrency?.ToUpperInvariant() ?? DefaultTargetCurrency;
 
-            // Get exchange rates
-            var exchangeRates = await _exchangeRateService.GetExchangeRatesAsync(targetCurrency, currencies, cancellationToken);
-            var ratesList = exchangeRates.ToList();
+		var currencyRates = await GetExchangeRatesForCurrenciesAsync(targetCurrency, currencies, cancellationToken);
 
-            _logger.LogInformation("Successfully retrieved {Count} exchange rates for target currency {TargetCurrency}", 
-                ratesList.Count, targetCurrency);
+        _logger.LogInformation("Successfully retrieved {Count} exchange rates for target currency {TargetCurrency}",
+			currencyRates.Count(), targetCurrency);
 
-            // Map to response model
-            var response = new ExchangeRateResponse
-            {
-                TargetCurrency = targetCurrency,
-                Rates = ratesList.Select(rate => new ExchangeRateDto
-                {
-                    SourceCurrency = rate.SourceCurrency.Code,
-                    TargetCurrency = rate.TargetCurrency.Code,
-                    Rate = rate.Value,
-                    ValidFor = rate.ValidFor
-                }).ToList()
-            };
+		var response = new ExchangeRateResponse
+		{
+			TargetCurrency = targetCurrency,
+			Rates = currencyRates.Select(rate => new ExchangeRateDto
+			{
+				SourceCurrency = rate.SourceCurrency.Code,
+				TargetCurrency = rate.TargetCurrency.Code,
+				Rate = rate.Value,
+				ValidFor = rate.ValidFor
+			}).ToList()
+		};
 
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Invalid operation when getting exchange rates");
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error occurred while getting exchange rates");
-            return StatusCode(500, "An error occurred while retrieving exchange rates");
-        }
-    }
+		return Ok(response);
+	}
 
-    /// <summary>
-    /// Get exchange rates for specified currencies using query parameters
-    /// </summary>
-    /// <param name="currencies">Comma-separated list of currency codes (e.g., "USD,EUR,JPY")</param>
-    /// <param name="targetCurrency">The target currency (defaults to "CZK")</param>
-    /// <param name="cancellationToken">Request cancellation token</param>
-    /// <returns>Exchange rates for the requested currencies</returns>
-    /// <response code="200">Returns the exchange rates for the requested currencies</response>
-    /// <response code="400">If no currencies are provided or the request is invalid</response>
-    /// <response code="500">If there was an internal server error</response>
-    [HttpGet(ApiEndpoints.ExchangeRates.GetAllByQueryParams)]
+	/// <summary>
+	/// Get exchange rates for specified currencies using query parameters
+	/// </summary>
+	/// <param name="currencies">Comma-separated list of currency codes (e.g., "USD,EUR,JPY")</param>
+	/// <param name="targetCurrency">The target currency (defaults to "CZK")</param>
+	/// <param name="cancellationToken">Request cancellation token</param>
+	/// <returns>Exchange rates for the requested currencies</returns>
+	/// <response code="200">Returns the exchange rates for the requested currencies</response>
+	/// <response code="400">If no currencies are provided or the request is invalid</response>
+	/// <response code="500">If there was an internal server error</response>
+	[HttpGet(ApiEndpoints.ExchangeRates.GetAllByQueryParams)]
     [SwaggerOperation(
         Summary = "Get exchange rates using GET request",
         Description = "Retrieves exchange rates for specified currencies using query parameters. Convenient for simple requests.",
@@ -147,25 +123,17 @@ public class ExchangeRateController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(currencies))
         {
-            return BadRequest("Currency codes parameter is required");
+            throw new ArgumentException("Currency codes parameter is required");
         }
 
         if (!QueryCodesRegex.IsMatch(currencies))
         {
-            return BadRequest("Currency codes must be in XXX,YYY,ZZZ format with 3-letter codes");
-        }
-
-        var split = currencies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (split.Length > 10)
-        {
-            return BadRequest("A maximum of 10 currency codes is allowed for GET requests");
-        }
-
-        var currencyCodes = split.Select(c => c.Trim().ToUpperInvariant()).ToList();
+			throw new ArgumentException("Currency codes must be in XXX,YYY,ZZZ format with 3-letter codes");
+		}
 
         var request = new ExchangeRateRequest
         {
-            CurrencyCodes = currencyCodes,
+            CurrencyCodes = GetCurrenctyCodesFromQueryParams(currencies),
             TargetCurrency = targetCurrency?.ToUpperInvariant()
         };
 
@@ -203,4 +171,24 @@ public class ExchangeRateController : ControllerBase
 
         return Ok(new { Providers = providers });
     }
+
+	private async Task<IEnumerable<ExchangeRate>> GetExchangeRatesForCurrenciesAsync(string targetCurrency, IEnumerable<Currency> currencies, CancellationToken cancellationToken)
+	{
+		if (!currencies.Any())
+		{
+			_logger.LogWarning("No valid currency codes provided after filtering");
+			throw new ArgumentException("No valid currency codes provided");
+		}
+
+		var exchangeRates = await _exchangeRateService.GetExchangeRatesAsync(targetCurrency, currencies, cancellationToken);
+
+		return exchangeRates;
+	}
+
+	private List<string> GetCurrenctyCodesFromQueryParams(string currencies)
+	{
+		return currencies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+			.Select(c => c.Trim().ToUpperInvariant())
+			.ToList();
+	}
 }
