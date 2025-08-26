@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ExchangeRateApi.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace ExchangeRateApi;
@@ -29,10 +30,13 @@ public class GlobalExceptionFilter : IExceptionFilter
 			_ => (500, "An error occurred while processing your request")
 		};
 
-		context.Result = new ObjectResult(new
+		object payload = statusCode switch
 		{
-			Error = message
-		})
+			400 => new ErrorResponse { Error = message },
+			_ => new { Error = message }
+		};
+
+		context.Result = new ObjectResult(payload)
 		{
 			StatusCode = statusCode
 		};
