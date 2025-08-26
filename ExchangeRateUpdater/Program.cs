@@ -18,8 +18,7 @@ var currencies = new List<Currency>
     new("KES"),
     new("RUB"),
     new("THB"),
-    new("TRY"),
-    new("XYZ")
+    new("TRY")
 };
 
 var builder = Host.CreateApplicationBuilder(args);

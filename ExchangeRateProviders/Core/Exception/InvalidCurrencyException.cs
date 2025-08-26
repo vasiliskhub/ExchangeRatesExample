@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace ExchangeRateProviders.Core.Exception
+﻿namespace ExchangeRateProviders.Core.Exception
 {
 	[Serializable]
 	public class InvalidCurrencyException : ArgumentException
@@ -17,12 +15,6 @@ namespace ExchangeRateProviders.Core.Exception
 			: base(BuildMessage(invalidCodes), inner)
 		{
 			InvalidCurrencyCodes = invalidCodes.ToList().AsReadOnly();
-		}
-
-		protected InvalidCurrencyException(SerializationInfo info, StreamingContext context)
-		{
-			InvalidCurrencyCodes = (info.GetValue(nameof(InvalidCurrencyCodes), typeof(List<string>)) as List<string>)
-				?? new List<string>();
 		}
 
 		private static string BuildMessage(IEnumerable<string> invalidCodes)
