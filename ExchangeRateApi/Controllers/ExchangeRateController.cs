@@ -40,10 +40,9 @@ public class ExchangeRateController : ControllerBase
 		Summary = "Get exchange rates using POST request",
 		Description = "Retrieves exchange rates for specified currencies using a JSON request body. Supports multiple currencies and custom target currency.",
 		OperationId = "GetExchangeRatesPost")]
-	[SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))
-	]
-	[SwaggerResponse(400, "Invalid request - missing or invalid currency codes")]
-	[SwaggerResponse(500, "Internal server error")]
+	[SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))]
+	[SwaggerResponse(400, "Invalid request - missing or invalid currency codes", typeof(ErrorResponse))]
+	[SwaggerResponse(500, "Internal server error", typeof(ErrorResponse))]
 	public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRates(
 	[FromBody] ExchangeRateRequest request,
 	CancellationToken cancellationToken = default)
@@ -99,10 +98,9 @@ public class ExchangeRateController : ControllerBase
 		Summary = "Get exchange rates using GET request",
 		Description = "Retrieves exchange rates for specified currencies using query parameters. Convenient for simple requests.",
 		OperationId = "GetExchangeRatesGet")]
-	[SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))
-	]
-	[SwaggerResponse(400, "Invalid request - missing currency codes or format violation")]
-	[SwaggerResponse(500, "Internal server error")]
+	[SwaggerResponse(200, "Exchange rates retrieved successfully", typeof(ExchangeRateResponse))]
+	[SwaggerResponse(400, "Invalid request - missing currency codes or format violation", typeof(ErrorResponse))]
+	[SwaggerResponse(500, "Internal server error", typeof(ErrorResponse))]
 	public async Task<ActionResult<ExchangeRateResponse>> GetExchangeRatesQuery(
 		[FromQuery, SwaggerParameter("Comma-separated currency codes (e.g., USD,EUR,JPY)", Required = true)] string currencies,
 		[FromQuery, SwaggerParameter("Target currency code (defaults to 'CZK')")] string? targetCurrency = null,
