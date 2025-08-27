@@ -5,11 +5,8 @@ A .NET 9 multi-project solution demonstrating a clean, extensible approach to fe
 ## Get up and Running with Docker
 docker compose -f docker-compose.dev.yml up -d --build
 - The API will be available at `http://localhost:8080/swagger/index.html`
-- 
 - Alternatively public access to the API deployed on hetzner cloud via github actions CI/CD pipeline: http://128.140.72.56:18080/swagger
 
-   .
-  
 ## Projects
 
 - **ExchangeRateApi** (ASP.NET Core Web API)
